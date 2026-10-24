@@ -66,16 +66,16 @@ footer { color: var(--dim); font-size: 13px; }
 <body>
 <main>
   <h1>Feed recipes</h1>
-  <p class="lede">A recipe turns the JSON a web address answers with into the one small file a MekaTrona Dial reads.
-    Every 10 minutes a GitHub Action reads each recipe's source and publishes the dial's file here.
-    This is a test, not a service.</p>
+  <p class="lede">A recipe tells the converter where your number sits in the JSON a web address sends back.
+    A GitHub Action reads each recipe's source, pulls the number out, and publishes a small file on this site
+    that a MekaTrona Dial can read. It's a test, and everything on it is public.</p>
 
   <section>
     <h2>Published feeds</h2>
     <div class="wrap">
       <table>
         <thead><tr><th>Feed</th><th>Reading</th><th>Taken</th><th>Last run</th></tr></thead>
-        <tbody id="feeds"><tr><td colspan="4" class="note">Reading feeds/index.json…</td></tr></tbody>
+        <tbody id="feeds"><tr><td colspan="4" class="note">Loading feeds…</td></tr></tbody>
       </table>
     </div>
     <p class="note" id="ran"></p>
@@ -84,16 +84,16 @@ footer { color: var(--dim); font-size: 13px; }
   <section>
     <h2>1. The source</h2>
     <div class="row">
-      <div><label for="src">Web address that answers with JSON (https only)</label>
+      <div><label for="src">Address of an API that sends back JSON (https only)</label>
         <input id="src" class="mono" type="url" value="https://api.open-meteo.com/v1/forecast?latitude=-26.2&amp;longitude=28.04&amp;current=temperature_2m"></div>
-      <button id="read">Read it</button>
+      <button id="read">Load</button>
     </div>
     <p class="note" id="readnote" style="margin-top:8px"></p>
   </section>
 
   <section>
-    <h2>2. Where the reading is</h2>
-    <p class="note">Click a field in the answer to use it as:</p>
+    <h2>2. Find the number</h2>
+    <p class="note">Choose what you're picking, then click a field in the answer:</p>
     <div class="roles" id="roles">
       <button data-role="value" aria-pressed="true">Value</button>
       <button data-role="unit" aria-pressed="false">Unit</button>
@@ -105,30 +105,30 @@ footer { color: var(--dim); font-size: 13px; }
       <tr><td>Value</td><td><input class="mono" id="p-value" placeholder="current.temperature_2m"></td><td class="found mono" id="f-value"></td></tr>
       <tr><td>Unit</td><td><input class="mono" id="p-unit" placeholder="optional"></td><td class="found mono" id="f-unit"></td></tr>
       <tr><td>Reading time</td><td><input class="mono" id="p-at" placeholder="optional"></td><td class="found mono" id="f-at"></td></tr>
-      <tr><td>UTC offset (s)</td><td><input class="mono" id="p-atOffset" placeholder="for a time with no zone"></td><td class="found mono" id="f-atOffset"></td></tr>
+      <tr><td>UTC offset (s)</td><td><input class="mono" id="p-atOffset" placeholder="only if the time has no zone"></td><td class="found mono" id="f-atOffset"></td></tr>
     </table>
-    <label style="margin-top:8px"><input type="checkbox" id="utc" style="width:auto"> The reading time is in UTC, though it does not say so</label>
+    <label style="margin-top:8px"><input type="checkbox" id="utc" style="width:auto"> The time is UTC, even though it doesn't say so</label>
     <p class="note" id="timenote"></p>
-    <p class="note">The value is copied as the source writes it, digit for digit; the dial rounds it to suit its scale.</p>
+    <p class="note">The converter keeps the source's own digits. The dial rounds the number to suit its scale.</p>
   </section>
 
   <section>
-    <h2>3. The dial</h2>
+    <h2>3. Set up the dial</h2>
     <div class="grid">
       <div><label for="d-name">Name</label><input id="d-name" value="Johannesburg"></div>
-      <div><label for="d-unit">Unit, if not picked</label><input id="d-unit" placeholder="C"></div>
+      <div><label for="d-unit">Unit (if you didn't pick one)</label><input id="d-unit" placeholder="C"></div>
       <div><label for="d-lo">Scale from</label><input id="d-lo" class="mono" inputmode="decimal" value="0"></div>
       <div><label for="d-hi">Scale to</label><input id="d-hi" class="mono" inputmode="decimal" value="40"></div>
       <div><label for="d-mark">Target (optional)</label><input id="d-mark" class="mono" inputmode="decimal"></div>
       <div><label for="d-stale">Stale after (minutes)</label><input id="d-stale" class="mono" inputmode="numeric" value="60"></div>
     </div>
-    <p class="note">Past that age the dial shows STALE with the reading's age. It needs a reading time to know the age.</p>
+    <p class="note">Once a reading is older than this, the dial shows STALE and how old it is. That needs a reading time, picked above.</p>
   </section>
 
   <section>
     <h2>4. Save the recipe</h2>
     <div class="row" style="margin-bottom:12px">
-      <div><label for="r-name">Recipe name: lower-case letters, digits and dashes</label><input id="r-name" class="mono" value="jhb-temp"></div>
+      <div><label for="r-name">Recipe name (lower-case letters, digits and dashes)</label><input id="r-name" class="mono" value="jhb-temp"></div>
     </div>
     <textarea id="recipe" class="mono" readonly></textarea>
     <p class="error" id="problems"></p>
@@ -137,15 +137,16 @@ footer { color: var(--dim); font-size: 13px; }
       <button class="quiet" id="copy">Copy</button>
       <span class="note" id="copied"></span>
     </div>
-    <p class="note" style="margin-top:12px">Saving opens GitHub with the file filled in. It needs a GitHub account, and without write access
-      GitHub offers to propose the change instead. The dial's file appears above on the first run after the recipe is saved,
-      usually within 10 minutes. The dial reads it at <code id="feedurl"></code>.</p>
+    <p class="note" style="margin-top:12px">Save on GitHub opens GitHub with the file already filled in. You'll need a GitHub account,
+      and if you can't write to this repo, GitHub offers to send it as a proposed change. Once the recipe is on main, the Action
+      runs within a few minutes, and the feed shows up in the table above when GitHub Pages catches up, which can take another
+      10 minutes. After that it's on a 10-minute schedule, which GitHub can start late. The dial reads the file from <code id="feedurl"></code>.</p>
   </section>
 
   <footer>
-    <p>The dial's format is <code>analog-dial/feed@0</code>: <code>value</code> as decimal text, <code>at</code> in UTC,
-      and optional <code>name</code>, <code>unit</code>, <code>rangeLo</code>, <code>rangeHi</code>, <code>setHand</code> and <code>staleAfterS</code>.</p>
-    <p>Weather data by <a href="https://open-meteo.com/">Open-Meteo.com</a>, under CC BY 4.0, free for non-commercial use.</p>
+    <p>The file follows the dial's format, <code>analog-dial/feed@0</code>: <code>value</code> as text, <code>at</code> in UTC,
+      and optionally <code>name</code>, <code>unit</code>, <code>rangeLo</code>, <code>rangeHi</code>, <code>setHand</code> and <code>staleAfterS</code>.</p>
+    <p>Weather data by <a href="https://open-meteo.com/">Open-Meteo.com</a>, under CC BY 4.0. Their free API is for non-commercial use.</p>
   </footer>
 </main>
 
@@ -253,7 +254,7 @@ function renderTree() {
   if (answer === null) {
     const s = document.createElement("span");
     s.className = "note";
-    s.textContent = "Read a source to see its answer here, or type the paths below.";
+    s.textContent = "Load a source to see its answer here, or type the paths below.";
     tree.appendChild(s);
     return;
   }
@@ -304,19 +305,23 @@ function renderTree() {
 async function readSource() {
   const url = $("src").value.trim();
   const note = $("readnote");
-  if (!url.startsWith("https://")) { note.textContent = "The address must start with https://."; return; }
-  note.textContent = "Reading…";
+  if (!url.startsWith("https://")) { note.textContent = "The address has to start with https://."; return; }
+  note.textContent = "Loading…";
   try {
     const r = await fetch(url, { headers: { Accept: "application/json" } });
     const text = await r.text();
-    if (!r.ok) throw new Error("the source answered " + r.status);
-    answer = parseJSON(text);
-    note.textContent = "Read " + text.length + " characters. Values are shown as the source wrote them.";
+    if (!r.ok) {
+      answer = null;
+      note.textContent = "The source answered with an error (" + r.status + ").";
+    } else {
+      answer = parseJSON(text);
+      note.textContent = "Got " + text.length + " characters back. Numbers are shown as the source wrote them.";
+    }
   } catch (e) {
     answer = null;
     note.textContent = e instanceof TypeError
-      ? "The browser could not read that address. Many sources do not let other web pages read them; the converter, which is not a browser, may still manage. You can type the paths below."
-      : "That answer could not be read as JSON (" + e.message + ").";
+      ? "Your browser couldn't read that address. A lot of APIs don't let other web pages read them, but the converter isn't a browser, so it may still get through. You can type the paths in below."
+      : "That didn't come back as JSON (" + e.message + ").";
   }
   update();
 }
@@ -331,41 +336,41 @@ function buildRecipe() {
   const problems = [];
   const pick = {};
   for (const r of ROLES) { const p = $("p-" + r).value.trim(); if (p) pick[r] = p; }
-  if (!pick.value) problems.push("Choose where the value is.");
+  if (!pick.value) problems.push("Pick the field that holds the value.");
   const dial = {};
   if ($("d-name").value.trim()) dial.name = $("d-name").value.trim();
   if ($("d-unit").value.trim()) {
-    if (pick.unit) problems.push("The unit is both picked and typed; keep one.");
+    if (pick.unit) problems.push("You've picked a unit and typed one. Keep one of them.");
     else dial.unit = $("d-unit").value.trim();
   }
   const lo = numberOrNull("d-lo"), hi = numberOrNull("d-hi"), mark = numberOrNull("d-mark");
-  for (const [n, v] of [["Scale from", lo], ["Scale to", hi], ["Target", mark]]) if (Number.isNaN(v)) problems.push(n + " must be a number.");
+  for (const [n, v] of [["Scale from", lo], ["Scale to", hi], ["Target", mark]]) if (Number.isNaN(v)) problems.push(n + " has to be a number.");
   if (lo !== null && !Number.isNaN(lo)) dial.rangeLo = lo;
   if (hi !== null && !Number.isNaN(hi)) dial.rangeHi = hi;
   if (mark !== null && !Number.isNaN(mark)) dial.setHand = mark;
-  if (dial.rangeLo !== undefined && dial.rangeHi !== undefined && !(dial.rangeLo < dial.rangeHi)) problems.push("Scale from must be below Scale to.");
+  if (dial.rangeLo !== undefined && dial.rangeHi !== undefined && !(dial.rangeLo < dial.rangeHi)) problems.push("Scale from has to be below Scale to.");
   const stale = $("d-stale").value.trim();
   if (stale !== "") {
-    if (!/^\d+(\.\d+)?$/.test(stale) || +stale <= 0) problems.push("Stale after must be minutes above 0.");
+    if (!/^\d+(\.\d+)?$/.test(stale) || +stale <= 0) problems.push("Stale after needs a number of minutes above 0.");
     else dial.staleAfterS = Math.round(+stale * 60);
   }
   const recipe = { schema: "mekatrona/recipe@0", source: $("src").value.trim(), pick, dial };
   if ($("utc").checked) recipe.atZone = "UTC";
-  if (!recipe.source.startsWith("https://")) problems.push("The source must be an https:// address.");
+  if (!recipe.source.startsWith("https://")) problems.push("The source has to be an https:// address.");
   const name = $("r-name").value.trim();
-  if (!/^[a-z0-9][a-z0-9-]{0,39}$/.test(name)) problems.push("The recipe name must be lower-case letters, digits and dashes.");
+  if (!/^[a-z0-9][a-z0-9-]{0,39}$/.test(name)) problems.push("The recipe name can only use lower-case letters, digits and dashes.");
   return { recipe, name, problems };
 }
 
 function update() {
   for (const r of ROLES) {
     const v = answer === null ? undefined : lookup(answer, $("p-" + r).value.trim());
-    $("f-" + r).textContent = answer === null || !$("p-" + r).value.trim() ? "" : (v === undefined ? "nothing there" : show(v));
+    $("f-" + r).textContent = answer === null || !$("p-" + r).value.trim() ? "" : (v === undefined ? "nothing at that path" : show(v));
   }
   const at = answer === null ? undefined : lookup(answer, $("p-at").value.trim());
   const atText = at instanceof Num ? null : (typeof at === "string" ? at : null);
   $("timenote").textContent = atText && !/(Z|[+-]\d\d:?\d\d)$/i.test(atText) && !$("p-atOffset").value.trim() && !$("utc").checked
-    ? "This time names no zone. Pick its UTC offset, or tick the box if it is UTC; the converter will not guess." : "";
+    ? "This time doesn't say which time zone it's in. Pick the field with its UTC offset, or tick the box if it's UTC. The converter won't guess." : "";
   renderTree();
   const { recipe, name, problems } = buildRecipe();
   const text = JSON.stringify(recipe, null, 2) + "\n";
@@ -406,11 +411,11 @@ async function loadFeeds() {
       if (f.result !== "none") name.appendChild(a); else name.textContent = f.name || f.id;
       cell("reading mono", f.value === undefined ? "—" : (f.value === null ? "NO DATA" : f.value));
       cell("mono", f.at ? utc(f.at) + " (" + ago(f.at) + ")" : "—");
-      const words = { new: "read from the source", kept: "source failed, last file kept: ", none: "no file: " };
+      const words = { new: "new reading", kept: "source failed, kept the last file: ", none: "no file yet: " };
       cell(f.result, words[f.result] + (f.result === "new" ? "" : (f.why || "")));
       body.appendChild(tr);
     }
-    $("ran").textContent = "Last run " + utc(index.ranAt) + ", " + ago(index.ranAt) + ". Times are when the source says it took the reading.";
+    $("ran").textContent = "Last run " + utc(index.ranAt) + ", " + ago(index.ranAt) + ". Taken is when the source says it took the reading.";
   } catch (e) {
     body.innerHTML = '<tr><td colspan="4" class="note">No feeds published here yet.</td></tr>';
   }
@@ -425,7 +430,7 @@ for (const id of ["src", "p-value", "p-unit", "p-at", "p-atOffset", "utc", "d-na
 $("read").addEventListener("click", readSource);
 $("copy").addEventListener("click", async () => {
   try { await navigator.clipboard.writeText($("recipe").value); $("copied").textContent = "Copied."; }
-  catch (e) { $("recipe").select(); $("copied").textContent = "Select and copy it by hand."; }
+  catch (e) { $("recipe").select(); $("copied").textContent = "Couldn't copy it. Select the text and copy it yourself."; }
 });
 $("p-value").value = "current.temperature_2m";
 $("p-unit").value = "current_units.temperature_2m";

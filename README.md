@@ -1,17 +1,17 @@
 # MekaTrona feed demo
 
-A test of one way to bring your own data to a MekaTrona Dial: a **recipe** says where a reading is
-in the JSON some web address answers with, and a GitHub Action turns it, every 10 minutes, into the
-one small file the dial reads over HTTPS.
+This repo tries out one way to get your own data onto a MekaTrona Dial. You write a recipe that
+says where the number you want sits in a web API's JSON. Every 10 minutes a GitHub Action reads
+that API, pulls the number out, and publishes a small file the Dial reads over HTTPS.
 
-**Recipe page:** https://azadmotala.github.io/mekatrona-feed-demo/
-**Demo feed:** https://azadmotala.github.io/mekatrona-feed-demo/feeds/jhb-temp.json, the current
-temperature in Johannesburg from [Open-Meteo](https://open-meteo.com/).
+The recipe page is at https://azadmotala.github.io/mekatrona-feed-demo/. The demo feed is
+Johannesburg's current temperature from [Open-Meteo](https://open-meteo.com/), at
+https://azadmotala.github.io/mekatrona-feed-demo/feeds/jhb-temp.json.
 
-This is a test, not a service: scheduled runs can start late, GitHub stops them after 60 days
-without a commit, and everything here is public.
+It's a test. GitHub can start scheduled runs late and stops them after 60 days without a commit,
+and Pages can take up to 10 minutes to serve a new file. Everything in here is public.
 
-## The dial's file
+## What the Dial reads
 
 ```json
 {"schema": "analog-dial/feed@0",
@@ -19,13 +19,18 @@ without a commit, and everything here is public.
           "value": "26.0", "at": "2026-10-24T09:45:00Z", "staleAfterS": 3600}}
 ```
 
-- `value` is decimal text, copied from the source digit for digit (at most 12 characters), or
-  `null` when the source has no reading. The dial rounds it to suit its scale.
-- `at` is when the source says it took the reading, in UTC. With `staleAfterS`, the dial shows
-  `STALE` and the reading's age once it is older than that, even while the file keeps being published.
-- `name`, `unit`, `rangeLo`, `rangeHi` (0 and 100 if left out) and `setHand` (a target) are optional.
+`value` is the reading as text, with the source's own digits, or `null` when the source has no
+reading. It can be up to 12 characters: extra decimal places get rounded off, and an exponent like
+`1.5e3` is written out as `1500`. The Dial does its own rounding to suit its scale.
 
-## A recipe
+`at` is when the source says it took the reading, in UTC. Add `staleAfterS` and the Dial shows
+`STALE` with the reading's age once it's older than that, even while the file keeps being
+republished.
+
+The rest is optional: `name`, `unit`, `rangeLo` and `rangeHi` (0 and 100 if you leave them out),
+and `setHand` for a target.
+
+## Recipes
 
 ```json
 {"schema": "mekatrona/recipe@0",
@@ -35,18 +40,26 @@ without a commit, and everything here is public.
  "dial": {"name": "Johannesburg", "rangeLo": 0, "rangeHi": 40, "staleAfterS": 3600}}
 ```
 
-`pick` holds paths into the source's answer (`data[0].price` and `data.0.price` both work); `dial`
-holds fields written into the file as given. A reading time that names no zone needs `atOffset`
-(a field holding its UTC offset in seconds) or `"atZone": "UTC"`; it is never guessed. The page
-builds a recipe by clicking fields in a live answer, then opens GitHub to save it as
-`recipes/<name>.json`.
+`pick` points at fields in the source's JSON, and `data[0].price` and `data.0.price` both work.
+`dial` holds fields that go into the file as you typed them.
 
-## Each run
+If the source gives a time without a time zone, tell the recipe how to read it: `atOffset` names
+the field that holds its UTC offset in seconds, or `"atZone": "UTC"` says it's already UTC. With
+neither, the run refuses the time instead of guessing.
 
-[`convert.py`](convert.py) (Python standard library only) fetches every recipe's source and writes
-`feeds/<name>.json`. If a source cannot be read, or its answer does not have what the recipe points
-at, last run's file is published again unchanged, and its `at` lets the dial show how old it is.
-`feeds/index.json` says what each run did. Tests: `python3 -m unittest -v test_convert.py`.
+You don't have to write recipes by hand. On the recipe page, paste an API address, click the
+fields you want, fill in the dial's name and scale, and it opens GitHub with `recipes/<name>.json`
+ready to save.
+
+## What each run does
+
+[`convert.py`](convert.py) uses only Python's standard library. For each recipe it fetches the
+source and writes `feeds/<name>.json`. If a source is down, or its answer is missing a field the
+recipe points at, the run publishes the previous file again, unchanged, if there is one. Its `at`
+stays the same, so the Dial can tell the reading is getting old. `feeds/index.json` records what
+happened to each feed on the last run.
+
+Run the tests with `python3 -m unittest -v test_convert.py`.
 
 Weather data by [Open-Meteo.com](https://open-meteo.com/), under
-[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/), free for non-commercial use.
+[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Their free API is for non-commercial use.

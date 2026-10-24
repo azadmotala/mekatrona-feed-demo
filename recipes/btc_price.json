@@ -1,0 +1,1 @@
+{"schema":"mekatrona/recipe@0","source":"https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=zar&include_last_updated_at=true","pick":{"value":"bitcoin.zar","at":"bitcoin.last_updated_at"},"dial":{"name":"Bitcoin","unit":"ZAR","rangeLo":1200000,"rangeHi":1500000,"setHand":1300000,"good":"high","zoneMode":"mark","staleAfterS":1800}}

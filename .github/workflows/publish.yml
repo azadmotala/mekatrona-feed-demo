@@ -1,6 +1,6 @@
 # Every 10 minutes (GitHub may start a scheduled run late), on demand, and whenever main changes:
 # test the converter, turn every recipe into the dial's file, and publish the files and the recipe
-# page to GitHub Pages.
+# page, with the setup mock beside it, to GitHub Pages.
 name: Publish feeds
 
 on:
@@ -33,8 +33,8 @@ jobs:
         run: python3 -m unittest -v test_convert.py
       - name: Convert every recipe
         run: python3 convert.py --out _site --published "${{ steps.pages.outputs.base_url }}"
-      - name: Add the recipe page
-        run: cp index.html _site/
+      - name: Add the recipe page and the setup mock
+        run: cp index.html wizard.html _site/
       - uses: actions/upload-pages-artifact@v5
         with:
           path: _site

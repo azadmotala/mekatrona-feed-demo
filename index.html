@@ -20,6 +20,7 @@ h1 { font-size: 24px; margin: 0 0 4px; }
 h2 { font-size: 17px; margin: 0 0 12px; }
 p { margin: 0 0 12px; }
 .lede { color: var(--dim); margin-bottom: 24px; }
+.lede + .lede { margin-top: -12px; }
 section { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 18px; margin-bottom: 18px; }
 code, .mono, textarea, input.mono { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px; }
 code { background: var(--code); padding: 1px 5px; border-radius: 4px; }
@@ -70,6 +71,8 @@ footer { color: var(--dim); font-size: 13px; }
   <p class="lede">A recipe tells the converter where your number sits in the JSON a web address sends back.
     A GitHub Action reads each recipe's source, pulls the number out, and publishes a small file on this site
     that a MekaTrona Dial can read. It's a test, and everything on it is public.</p>
+  <p class="lede">Prefer to be walked through it? Try the <a href="wizard.html">step-by-step setup</a>.
+    It's a mock for now: it shows you a live preview of the dial but doesn't save anything.</p>
 
   <section>
     <h2>Published feeds</h2>

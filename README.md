@@ -1,23 +1,37 @@
 # MekaTrona feed demo
 
 This repo tries out one way to get your own data onto a MekaTrona Dial. You write a recipe that
-says where the number you want sits in a web API's JSON. Every 10 minutes a GitHub Action reads
-that API, pulls the number out, and publishes a small file the Dial reads over HTTPS.
+says where the number you want sits in a web API's JSON. A GitHub Action reads that API, pulls the
+number out, and publishes a small file the Dial reads over HTTPS.
 
-The recipe page is at https://azadmotala.github.io/mekatrona-feed-demo/. The demo feed is
-Johannesburg's current temperature from [Open-Meteo](https://open-meteo.com/), at
-https://azadmotala.github.io/mekatrona-feed-demo/feeds/jhb-temp.json.
+The recipe page is at https://azadmotala.github.io/mekatrona-feed-demo/. There are three demo
+feeds, each at `https://azadmotala.github.io/mekatrona-feed-demo/feeds/<name>.json`:
 
-It's a test. GitHub can start scheduled runs late and stops them after 60 days without a commit,
-and Pages can take up to 10 minutes to serve a new file. Everything in here is public.
+- `jhb-temp`: the temperature in Johannesburg, from [Open-Meteo](https://open-meteo.com/)
+- `jhb-pm25`: fine dust (PM2.5) in Johannesburg, from Open-Meteo's air quality API
+- `btc-price`: the Bitcoin price in rand, from [CoinGecko](https://www.coingecko.com/en/api)
+
+There's also a mock of a step-by-step setup at
+https://azadmotala.github.io/mekatrona-feed-demo/wizard.html. You pick what the Dial should show,
+choose a city or a coin, and set up the dial with a live preview of how it will look. It doesn't
+save anything, and its last step, pairing with a Dial, isn't built yet.
+
+It's a test. The Action runs whenever something is pushed to main, and it's set to run every 10
+minutes as well, but GitHub runs that schedule far less often. On 24 October 2026, the repo's first
+day, it had run twice by 17:30 UTC: at 13:45 and 17:00. So between pushes a feed can go hours
+without a new reading. A feed with `staleAfterS` shows STALE on the Dial once its reading is older
+than that. GitHub also stops scheduled runs after 60 days without a commit, and Pages can take up
+to 10 minutes to serve a new file. Everything in here is public.
 
 ## What the Dial reads
 
+This is `feeds/jhb-pm25.json` as one run published it:
+
 ```json
 {"schema": "analog-dial/feed@0",
- "dial": {"name": "Johannesburg", "unit": "°C", "rangeLo": 0, "rangeHi": 40,
-          "setHand": 22, "good": "mid", "zoneMode": "mark",
-          "value": "26.0", "at": "2026-10-24T09:45:00Z", "staleAfterS": 3600}}
+ "dial": {"name": "Jhb PM2.5", "unit": "μg/m³", "rangeLo": 0, "rangeHi": 50,
+          "setHand": 15, "good": "low", "zoneMode": "mark",
+          "value": "17.3", "at": "2026-10-24T14:00:00Z", "staleAfterS": 3600}}
 ```
 
 `value` is the reading as text, with the source's own digits, or `null` when the source has no
@@ -36,12 +50,14 @@ where the colours change. With no target the ring stays dark.
 
 ## Recipes
 
+This is `recipes/jhb-pm25.json`, the recipe behind that feed:
+
 ```json
 {"schema": "mekatrona/recipe@0",
- "source": "https://api.open-meteo.com/v1/forecast?latitude=-26.2&longitude=28.04&current=temperature_2m",
- "pick": {"value": "current.temperature_2m", "unit": "current_units.temperature_2m",
+ "source": "https://air-quality-api.open-meteo.com/v1/air-quality?latitude=-26.2&longitude=28.04&current=pm2_5",
+ "pick": {"value": "current.pm2_5", "unit": "current_units.pm2_5",
           "at": "current.time", "atOffset": "utc_offset_seconds"},
- "dial": {"name": "Johannesburg", "rangeLo": 0, "rangeHi": 40, "setHand": 22, "good": "mid",
+ "dial": {"name": "Jhb PM2.5", "rangeLo": 0, "rangeHi": 50, "setHand": 15, "good": "low",
           "zoneMode": "mark", "staleAfterS": 3600}}
 ```
 
@@ -66,5 +82,6 @@ happened to each feed on the last run.
 
 Run the tests with `python3 -m unittest -v test_convert.py`.
 
-Weather data by [Open-Meteo.com](https://open-meteo.com/), under
+Weather and air quality data by [Open-Meteo.com](https://open-meteo.com/), under
 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Their free API is for non-commercial use.
+Price data provided by [CoinGecko](https://www.coingecko.com/en/api).

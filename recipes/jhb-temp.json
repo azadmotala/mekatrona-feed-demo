@@ -1,0 +1,16 @@
+{
+  "schema": "mekatrona/recipe@0",
+  "source": "https://api.open-meteo.com/v1/forecast?latitude=-26.2&longitude=28.04&current=temperature_2m",
+  "pick": {
+    "value": "current.temperature_2m",
+    "unit": "current_units.temperature_2m",
+    "at": "current.time",
+    "atOffset": "utc_offset_seconds"
+  },
+  "dial": {
+    "name": "Johannesburg",
+    "rangeLo": 0,
+    "rangeHi": 40,
+    "staleAfterS": 3600
+  }
+}

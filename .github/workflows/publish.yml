@@ -1,0 +1,42 @@
+# Every 10 minutes (GitHub may start a scheduled run late), on demand, and whenever main changes:
+# test the converter, turn every recipe into the dial's file, and publish the files and the recipe
+# page to GitHub Pages.
+name: Publish feeds
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v7
+      - id: pages
+        uses: actions/configure-pages@v6
+      - name: Test the converter
+        run: python3 -m unittest -v test_convert.py
+      - name: Convert every recipe
+        run: python3 convert.py --out _site --published "${{ steps.pages.outputs.base_url }}"
+      - name: Add the recipe page
+        run: cp index.html _site/
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: _site
+      - id: deploy
+        uses: actions/deploy-pages@v5

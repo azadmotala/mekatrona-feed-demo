@@ -1,0 +1,438 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Feed recipes</title>
+<style>
+:root {
+  --bg: #f6f7f9; --panel: #ffffff; --text: #1b1f24; --dim: #5d6673; --line: #d9dde3;
+  --accent: #c2372f; --good: #1f7a3f; --warn: #9a5b00; --code: #eef0f3; --link: #1d5fbf;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #111418; --panel: #191d23; --text: #e6e9ef; --dim: #9aa4b2; --line: #2b313a;
+          --accent: #ff6b63; --good: #4cc27a; --warn: #f0b04a; --code: #222831; --link: #7fb2ff; }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+main { max-width: 860px; margin: 0 auto; padding: 24px 16px 48px; }
+h1 { font-size: 24px; margin: 0 0 4px; }
+h2 { font-size: 17px; margin: 0 0 12px; }
+p { margin: 0 0 12px; }
+.lede { color: var(--dim); margin-bottom: 24px; }
+section { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 18px; margin-bottom: 18px; }
+code, .mono, textarea, input.mono { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px; }
+code { background: var(--code); padding: 1px 5px; border-radius: 4px; }
+table { width: 100%; border-collapse: collapse; }
+th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: 12px; font-weight: 600; color: var(--dim); text-transform: uppercase; letter-spacing: .04em; }
+.reading { font-size: 18px; font-weight: 600; white-space: nowrap; }
+.new { color: var(--good); } .kept { color: var(--warn); } .none { color: var(--accent); }
+.note { color: var(--dim); font-size: 13px; }
+label { display: block; font-size: 13px; color: var(--dim); margin-bottom: 4px; }
+input, select, textarea, button { font: inherit; color: var(--text); }
+input, textarea { width: 100%; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; }
+textarea { min-height: 220px; resize: vertical; }
+button, .button { display: inline-block; background: var(--text); color: var(--bg); border: 0; border-radius: 6px; padding: 8px 14px; cursor: pointer; text-decoration: none; font-weight: 600; }
+button.quiet { background: transparent; color: var(--text); border: 1px solid var(--line); }
+.row { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; }
+.row > div { flex: 1 1 160px; min-width: 0; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-bottom: 12px; }
+.roles { display: flex; gap: 6px; flex-wrap: wrap; margin: 12px 0 8px; }
+.roles button { background: transparent; color: var(--text); border: 1px solid var(--line); font-weight: 500; padding: 5px 10px; }
+.roles button[aria-pressed="true"] { background: var(--text); color: var(--bg); border-color: var(--text); }
+.tree { background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 10px; max-height: 360px; overflow: auto; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px; }
+.tree ul { list-style: none; margin: 0; padding-left: 16px; }
+.tree > ul { padding-left: 0; }
+.tree .key { color: var(--dim); }
+.tree .leaf { cursor: pointer; border-radius: 3px; padding: 0 3px; }
+.tree .leaf:hover { background: var(--code); }
+.tree .leaf.chosen { outline: 2px solid var(--accent); }
+.tree .tag { font-size: 11px; color: var(--accent); margin-left: 6px; }
+.paths td:first-child { white-space: nowrap; color: var(--dim); width: 1%; }
+.paths input { padding: 5px 8px; }
+.found { word-break: break-all; }
+.error { color: var(--accent); }
+.wrap { overflow-x: auto; }
+a { color: var(--link); }
+footer { color: var(--dim); font-size: 13px; }
+@media (max-width: 560px) {
+  thead { display: none; }
+  tbody tr { display: block; padding: 8px 0; border-bottom: 1px solid var(--line); }
+  tbody td { display: block; border: 0; padding: 1px 0; }
+}
+</style>
+</head>
+<body>
+<main>
+  <h1>Feed recipes</h1>
+  <p class="lede">A recipe turns the JSON a web address answers with into the one small file a MekaTrona Dial reads.
+    Every 10 minutes a GitHub Action reads each recipe's source and publishes the dial's file here.
+    This is a test, not a service.</p>
+
+  <section>
+    <h2>Published feeds</h2>
+    <div class="wrap">
+      <table>
+        <thead><tr><th>Feed</th><th>Reading</th><th>Taken</th><th>Last run</th></tr></thead>
+        <tbody id="feeds"><tr><td colspan="4" class="note">Reading feeds/index.json…</td></tr></tbody>
+      </table>
+    </div>
+    <p class="note" id="ran"></p>
+  </section>
+
+  <section>
+    <h2>1. The source</h2>
+    <div class="row">
+      <div><label for="src">Web address that answers with JSON (https only)</label>
+        <input id="src" class="mono" type="url" value="https://api.open-meteo.com/v1/forecast?latitude=-26.2&amp;longitude=28.04&amp;current=temperature_2m"></div>
+      <button id="read">Read it</button>
+    </div>
+    <p class="note" id="readnote" style="margin-top:8px"></p>
+  </section>
+
+  <section>
+    <h2>2. Where the reading is</h2>
+    <p class="note">Click a field in the answer to use it as:</p>
+    <div class="roles" id="roles">
+      <button data-role="value" aria-pressed="true">Value</button>
+      <button data-role="unit" aria-pressed="false">Unit</button>
+      <button data-role="at" aria-pressed="false">Reading time</button>
+      <button data-role="atOffset" aria-pressed="false">UTC offset (s)</button>
+    </div>
+    <div class="tree" id="tree"><span class="note">Read a source to see its answer here, or type the paths below.</span></div>
+    <table class="paths" style="margin-top:12px">
+      <tr><td>Value</td><td><input class="mono" id="p-value" placeholder="current.temperature_2m"></td><td class="found mono" id="f-value"></td></tr>
+      <tr><td>Unit</td><td><input class="mono" id="p-unit" placeholder="optional"></td><td class="found mono" id="f-unit"></td></tr>
+      <tr><td>Reading time</td><td><input class="mono" id="p-at" placeholder="optional"></td><td class="found mono" id="f-at"></td></tr>
+      <tr><td>UTC offset (s)</td><td><input class="mono" id="p-atOffset" placeholder="for a time with no zone"></td><td class="found mono" id="f-atOffset"></td></tr>
+    </table>
+    <label style="margin-top:8px"><input type="checkbox" id="utc" style="width:auto"> The reading time is in UTC, though it does not say so</label>
+    <p class="note" id="timenote"></p>
+    <p class="note">The value is copied as the source writes it, digit for digit; the dial rounds it to suit its scale.</p>
+  </section>
+
+  <section>
+    <h2>3. The dial</h2>
+    <div class="grid">
+      <div><label for="d-name">Name</label><input id="d-name" value="Johannesburg"></div>
+      <div><label for="d-unit">Unit, if not picked</label><input id="d-unit" placeholder="C"></div>
+      <div><label for="d-lo">Scale from</label><input id="d-lo" class="mono" inputmode="decimal" value="0"></div>
+      <div><label for="d-hi">Scale to</label><input id="d-hi" class="mono" inputmode="decimal" value="40"></div>
+      <div><label for="d-mark">Target (optional)</label><input id="d-mark" class="mono" inputmode="decimal"></div>
+      <div><label for="d-stale">Stale after (minutes)</label><input id="d-stale" class="mono" inputmode="numeric" value="60"></div>
+    </div>
+    <p class="note">Past that age the dial shows STALE with the reading's age. It needs a reading time to know the age.</p>
+  </section>
+
+  <section>
+    <h2>4. Save the recipe</h2>
+    <div class="row" style="margin-bottom:12px">
+      <div><label for="r-name">Recipe name: lower-case letters, digits and dashes</label><input id="r-name" class="mono" value="jhb-temp"></div>
+    </div>
+    <textarea id="recipe" class="mono" readonly></textarea>
+    <p class="error" id="problems"></p>
+    <div class="row" style="align-items:center">
+      <a class="button" id="save" target="_blank" rel="noopener">Save on GitHub</a>
+      <button class="quiet" id="copy">Copy</button>
+      <span class="note" id="copied"></span>
+    </div>
+    <p class="note" style="margin-top:12px">Saving opens GitHub with the file filled in. It needs a GitHub account, and without write access
+      GitHub offers to propose the change instead. The dial's file appears above on the first run after the recipe is saved,
+      usually within 10 minutes. The dial reads it at <code id="feedurl"></code>.</p>
+  </section>
+
+  <footer>
+    <p>The dial's format is <code>analog-dial/feed@0</code>: <code>value</code> as decimal text, <code>at</code> in UTC,
+      and optional <code>name</code>, <code>unit</code>, <code>rangeLo</code>, <code>rangeHi</code>, <code>setHand</code> and <code>staleAfterS</code>.</p>
+    <p>Weather data by <a href="https://open-meteo.com/">Open-Meteo.com</a>, under CC BY 4.0, free for non-commercial use.</p>
+  </footer>
+</main>
+
+<script>
+"use strict";
+const $ = (id) => document.getElementById(id);
+const ROLES = ["value", "unit", "at", "atOffset"];
+const ROLE_NAMES = { value: "value", unit: "unit", at: "time", atOffset: "offset" };
+let role = "value";
+let answer = null;          // the source's answer, parsed with every number kept as written
+
+/* Owner and repository from the page's own address on GitHub Pages, so a copy elsewhere links to its own. */
+const OWNER = location.hostname.endsWith(".github.io") ? location.hostname.split(".")[0] : "azadmotala";
+const REPO = (location.hostname.endsWith(".github.io") && location.pathname.split("/")[1]) || "mekatrona-feed-demo";
+const SITE = "https://" + OWNER + ".github.io/" + REPO;
+
+/* ---- JSON, with each number kept as the source wrote it ---- */
+class Num { constructor(raw) { this.raw = raw; } }
+
+function parseJSON(text) {
+  let i = 0;
+  const fail = (what) => { throw new Error(what + " at character " + i); };
+  const ws = () => { while (i < text.length && " \t\r\n".includes(text[i])) i++; };
+  function value() {
+    ws();
+    const c = text[i];
+    if (c === "{") {
+      i++; const out = new Map(); ws();
+      if (text[i] === "}") { i++; return out; }
+      for (;;) {
+        ws(); if (text[i] !== '"') fail("expected a key");
+        const k = string(); ws();
+        if (text[i++] !== ":") fail("expected :");
+        out.set(k, value()); ws();
+        if (text[i] === ",") { i++; continue; }
+        if (text[i++] === "}") return out;
+        fail("expected , or }");
+      }
+    }
+    if (c === "[") {
+      i++; const out = []; ws();
+      if (text[i] === "]") { i++; return out; }
+      for (;;) {
+        out.push(value()); ws();
+        if (text[i] === ",") { i++; continue; }
+        if (text[i++] === "]") return out;
+        fail("expected , or ]");
+      }
+    }
+    if (c === '"') return string();
+    const m = /^-?(0|[1-9]\d*)(\.\d+)?([eE][+-]?\d+)?/.exec(text.slice(i));
+    if (m && m[0]) { i += m[0].length; return new Num(m[0]); }
+    for (const [w, v] of [["true", true], ["false", false], ["null", null]])
+      if (text.startsWith(w, i)) { i += w.length; return v; }
+    fail("unexpected " + JSON.stringify(c || "end"));
+  }
+  function string() {
+    const start = i; i++;
+    while (i < text.length && text[i] !== '"') i += text[i] === "\\" ? 2 : 1;
+    if (i >= text.length) fail("unterminated text");
+    i++;
+    return JSON.parse(text.slice(start, i));
+  }
+  const v = value(); ws();
+  if (i !== text.length) fail("text after the end");
+  return v;
+}
+
+/* ---- paths, as the converter reads them ---- */
+function pathOf(parent, key) {
+  if (typeof key === "number") return parent + "[" + key + "]";
+  return parent ? parent + "." + key : key;
+}
+function usableKey(k) { return typeof k === "number" || /^[^.\[\]]+$/.test(k); }
+
+function lookup(doc, path) {
+  if (!path) return undefined;
+  let here = doc;
+  for (const part of path.split(".")) {
+    const steps = part.match(/[^.\[\]]+|\[\d+\]/g);
+    if (!steps || steps.join("") !== part) return undefined;
+    for (const s of steps) {
+      const key = s[0] === "[" ? +s.slice(1, -1) : s;
+      if (Array.isArray(here) && /^\d+$/.test(String(key)) && +key < here.length) here = here[+key];
+      else if (here instanceof Map && here.has(String(key))) here = here.get(String(key));
+      else return undefined;
+    }
+  }
+  return here;
+}
+function show(v) {
+  if (v === undefined) return "";
+  if (v instanceof Num) return v.raw;
+  if (v === null) return "null";
+  if (typeof v === "string") return JSON.stringify(v);
+  if (v instanceof Map) return "{…}";
+  if (Array.isArray(v)) return "[…]";
+  return String(v);
+}
+
+/* ---- the answer as a tree to click ---- */
+function renderTree() {
+  const tree = $("tree");
+  tree.textContent = "";
+  if (answer === null) {
+    const s = document.createElement("span");
+    s.className = "note";
+    s.textContent = "Read a source to see its answer here, or type the paths below.";
+    tree.appendChild(s);
+    return;
+  }
+  const chosen = {};
+  for (const r of ROLES) chosen[$("p-" + r).value.trim()] = (chosen[$("p-" + r).value.trim()] || []).concat(ROLE_NAMES[r]);
+  function node(v, key, path, usable) {
+    const li = document.createElement("li");
+    if (key !== null) {
+      const k = document.createElement("span");
+      k.className = "key";
+      k.textContent = (typeof key === "number" ? "[" + key + "]" : key) + ": ";
+      li.appendChild(k);
+    }
+    if (v instanceof Map || Array.isArray(v)) {
+      li.appendChild(document.createTextNode(v instanceof Map ? "{" : "["));
+      const ul = document.createElement("ul");
+      const entries = v instanceof Map ? [...v.entries()] : v.map((x, n) => [n, x]);
+      for (const [k2, v2] of entries) ul.appendChild(node(v2, k2, pathOf(path, k2), usable && usableKey(k2)));
+      li.appendChild(ul);
+      li.appendChild(document.createTextNode(v instanceof Map ? "}" : "]"));
+    } else {
+      const s = document.createElement("span");
+      s.textContent = show(v);
+      if (usable) {
+        s.className = "leaf" + (chosen[path] ? " chosen" : "");
+        s.title = path;
+        s.addEventListener("click", () => { $("p-" + role).value = path; update(); });
+        if (chosen[path]) {
+          const t = document.createElement("span");
+          t.className = "tag";
+          t.textContent = chosen[path].join(", ");
+          li.appendChild(s); li.appendChild(t);
+          return li;
+        }
+      } else {
+        s.className = "note";
+      }
+      li.appendChild(s);
+    }
+    return li;
+  }
+  const ul = document.createElement("ul");
+  ul.appendChild(node(answer, null, "", true));
+  tree.appendChild(ul);
+}
+
+/* ---- reading the source ---- */
+async function readSource() {
+  const url = $("src").value.trim();
+  const note = $("readnote");
+  if (!url.startsWith("https://")) { note.textContent = "The address must start with https://."; return; }
+  note.textContent = "Reading…";
+  try {
+    const r = await fetch(url, { headers: { Accept: "application/json" } });
+    const text = await r.text();
+    if (!r.ok) throw new Error("the source answered " + r.status);
+    answer = parseJSON(text);
+    note.textContent = "Read " + text.length + " characters. Values are shown as the source wrote them.";
+  } catch (e) {
+    answer = null;
+    note.textContent = e instanceof TypeError
+      ? "The browser could not read that address. Many sources do not let other web pages read them; the converter, which is not a browser, may still manage. You can type the paths below."
+      : "That answer could not be read as JSON (" + e.message + ").";
+  }
+  update();
+}
+
+/* ---- the recipe ---- */
+function numberOrNull(id) {
+  const s = $(id).value.trim();
+  if (s === "") return null;
+  return /^[+-]?\d+(\.\d+)?$/.test(s) ? Number(s) : NaN;
+}
+function buildRecipe() {
+  const problems = [];
+  const pick = {};
+  for (const r of ROLES) { const p = $("p-" + r).value.trim(); if (p) pick[r] = p; }
+  if (!pick.value) problems.push("Choose where the value is.");
+  const dial = {};
+  if ($("d-name").value.trim()) dial.name = $("d-name").value.trim();
+  if ($("d-unit").value.trim()) {
+    if (pick.unit) problems.push("The unit is both picked and typed; keep one.");
+    else dial.unit = $("d-unit").value.trim();
+  }
+  const lo = numberOrNull("d-lo"), hi = numberOrNull("d-hi"), mark = numberOrNull("d-mark");
+  for (const [n, v] of [["Scale from", lo], ["Scale to", hi], ["Target", mark]]) if (Number.isNaN(v)) problems.push(n + " must be a number.");
+  if (lo !== null && !Number.isNaN(lo)) dial.rangeLo = lo;
+  if (hi !== null && !Number.isNaN(hi)) dial.rangeHi = hi;
+  if (mark !== null && !Number.isNaN(mark)) dial.setHand = mark;
+  if (dial.rangeLo !== undefined && dial.rangeHi !== undefined && !(dial.rangeLo < dial.rangeHi)) problems.push("Scale from must be below Scale to.");
+  const stale = $("d-stale").value.trim();
+  if (stale !== "") {
+    if (!/^\d+(\.\d+)?$/.test(stale) || +stale <= 0) problems.push("Stale after must be minutes above 0.");
+    else dial.staleAfterS = Math.round(+stale * 60);
+  }
+  const recipe = { schema: "mekatrona/recipe@0", source: $("src").value.trim(), pick, dial };
+  if ($("utc").checked) recipe.atZone = "UTC";
+  if (!recipe.source.startsWith("https://")) problems.push("The source must be an https:// address.");
+  const name = $("r-name").value.trim();
+  if (!/^[a-z0-9][a-z0-9-]{0,39}$/.test(name)) problems.push("The recipe name must be lower-case letters, digits and dashes.");
+  return { recipe, name, problems };
+}
+
+function update() {
+  for (const r of ROLES) {
+    const v = answer === null ? undefined : lookup(answer, $("p-" + r).value.trim());
+    $("f-" + r).textContent = answer === null || !$("p-" + r).value.trim() ? "" : (v === undefined ? "nothing there" : show(v));
+  }
+  const at = answer === null ? undefined : lookup(answer, $("p-at").value.trim());
+  const atText = at instanceof Num ? null : (typeof at === "string" ? at : null);
+  $("timenote").textContent = atText && !/(Z|[+-]\d\d:?\d\d)$/i.test(atText) && !$("p-atOffset").value.trim() && !$("utc").checked
+    ? "This time names no zone. Pick its UTC offset, or tick the box if it is UTC; the converter will not guess." : "";
+  renderTree();
+  const { recipe, name, problems } = buildRecipe();
+  const text = JSON.stringify(recipe, null, 2) + "\n";
+  $("recipe").value = text;
+  $("problems").textContent = problems.join(" ");
+  $("feedurl").textContent = SITE + "/feeds/" + (name || "…") + ".json";
+  const save = $("save");
+  if (problems.length) { save.removeAttribute("href"); save.style.opacity = .4; }
+  else {
+    save.href = "https://github.com/" + OWNER + "/" + REPO + "/new/main?filename=" + encodeURIComponent("recipes/" + name + ".json") + "&value=" + encodeURIComponent(text);
+    save.style.opacity = 1;
+  }
+}
+
+/* ---- the published feeds ---- */
+function ago(iso) {
+  const s = Math.round((Date.now() - Date.parse(iso)) / 1000);
+  if (!isFinite(s)) return "";
+  if (s < 0) return "stamped " + Math.round(-s / 60) + "m ahead";
+  if (s < 3600) return Math.round(s / 60) + "m ago";
+  return Math.round(s / 3600) + "h ago";
+}
+function utc(iso) { return iso ? iso.replace("T", " ").replace(/:\d\dZ$/, " UTC") : "—"; }
+async function loadFeeds() {
+  const body = $("feeds");
+  try {
+    const r = await fetch("feeds/index.json", { cache: "no-store" });
+    if (!r.ok) throw new Error(r.status);
+    const index = await r.json();
+    body.textContent = "";
+    if (!index.feeds.length) body.innerHTML = '<tr><td colspan="4" class="note">No recipes yet.</td></tr>';
+    for (const f of index.feeds) {
+      const tr = document.createElement("tr");
+      const cell = (cls, text) => { const td = document.createElement("td"); if (cls) td.className = cls; td.textContent = text; tr.appendChild(td); return td; };
+      const name = cell("", "");
+      const a = document.createElement("a");
+      a.href = f.file; a.textContent = f.name || f.id;
+      if (f.result !== "none") name.appendChild(a); else name.textContent = f.name || f.id;
+      cell("reading mono", f.value === undefined ? "—" : (f.value === null ? "NO DATA" : f.value));
+      cell("mono", f.at ? utc(f.at) + " (" + ago(f.at) + ")" : "—");
+      const words = { new: "read from the source", kept: "source failed, last file kept: ", none: "no file: " };
+      cell(f.result, words[f.result] + (f.result === "new" ? "" : (f.why || "")));
+      body.appendChild(tr);
+    }
+    $("ran").textContent = "Last run " + utc(index.ranAt) + ", " + ago(index.ranAt) + ". Times are when the source says it took the reading.";
+  } catch (e) {
+    body.innerHTML = '<tr><td colspan="4" class="note">No feeds published here yet.</td></tr>';
+  }
+}
+
+document.querySelectorAll("#roles button").forEach((b) => b.addEventListener("click", () => {
+  role = b.dataset.role;
+  document.querySelectorAll("#roles button").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+}));
+for (const id of ["src", "p-value", "p-unit", "p-at", "p-atOffset", "utc", "d-name", "d-unit", "d-lo", "d-hi", "d-mark", "d-stale", "r-name"])
+  $(id).addEventListener("input", update);
+$("read").addEventListener("click", readSource);
+$("copy").addEventListener("click", async () => {
+  try { await navigator.clipboard.writeText($("recipe").value); $("copied").textContent = "Copied."; }
+  catch (e) { $("recipe").select(); $("copied").textContent = "Select and copy it by hand."; }
+});
+$("p-value").value = "current.temperature_2m";
+$("p-unit").value = "current_units.temperature_2m";
+$("p-at").value = "current.time";
+$("p-atOffset").value = "utc_offset_seconds";
+update();
+loadFeeds();
+</script>
+</body>
+</html>

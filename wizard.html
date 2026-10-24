@@ -1,0 +1,897 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Feed setup</title>
+<style>
+/* Layout: the steps on the left, the Dial on the right, held in view while you set it up;
+   on a phone the Dial sits above the step, smaller. */
+:root {
+  --bg: #f3f4f6; --panel: #ffffff; --text: #15181d; --dim: #5b6472; --faint: #8a93a1;
+  --line: #dde1e6; --field: #f8f9fa; --accent: #c2372f; --accent-ink: #ffffff;
+  --chip: #eceef1; --good: #1f7a3f; --warn: #8a5300; --focus: #1d5fbf;
+  --bezel-hi: #3a3f47; --bezel-lo: #0c0e11;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #0e1013; --panel: #171a1f; --text: #e6e9ef; --dim: #9aa4b2; --faint: #6d7684;
+          --line: #2a3038; --field: #111418; --accent: #ff6b63; --accent-ink: #1a0b0a;
+          --chip: #222831; --good: #4cc27a; --warn: #f0b04a; --focus: #7fb2ff;
+          --bezel-hi: #454b55; --bezel-lo: #050607; color-scheme: dark; }
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 var(--sans); }
+.shell { max-width: 1040px; margin: 0 auto; padding-block: 20px 56px;
+         padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+.brand { font-weight: 700; letter-spacing: .14em; text-transform: uppercase; font-size: 12px; color: var(--dim); }
+.brand b { color: var(--text); }
+.top a { color: var(--dim); font-size: 13px; }
+.mock { display: flex; gap: 10px; align-items: center; background: var(--chip); border-radius: 8px;
+        padding: 8px 12px; font-size: 13px; color: var(--dim); margin-bottom: 22px; }
+.mock strong { color: var(--text); font-size: 11px; letter-spacing: .08em; text-transform: uppercase;
+               border: 1px solid var(--line); border-radius: 4px; padding: 1px 6px; background: var(--panel); }
+.layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; }
+@media (min-width: 900px) {
+  .layout { grid-template-columns: minmax(0, 1fr) 340px; gap: 44px; align-items: start; }
+  .preview { position: sticky; top: calc(20px + env(safe-area-inset-top, 0px)); order: 2; }
+}
+.steps { min-width: 0; }
+.progress { list-style: none; display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin: 0 0 22px; padding: 0; }
+.progress li { font-size: 12px; color: var(--faint); padding-top: 8px; border-top: 3px solid var(--line); font-weight: 600; }
+.progress li.done { color: var(--dim); border-top-color: var(--dim); }
+.progress li.now { color: var(--text); border-top-color: var(--accent); }
+.eyebrow { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--faint); font-weight: 600; margin: 0 0 4px; }
+h1 { font-size: 26px; line-height: 1.2; margin: 0 0 18px; text-wrap: balance; font-weight: 700; }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 22px; }
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; }
+.card { display: grid; grid-template-columns: 36px minmax(0, 1fr); gap: 4px 12px; align-items: start; text-align: left;
+        background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 12px; padding: 16px;
+        cursor: pointer; font: inherit; transition: border-color .15s, transform .15s; }
+.card:hover { border-color: var(--dim); }
+.card[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+.card svg { grid-row: span 2; width: 36px; height: 36px; color: var(--accent); }
+.card b { font-size: 16px; }
+.card span { color: var(--dim); font-size: 13px; }
+.aside { margin: 18px 0 0; color: var(--dim); font-size: 14px; }
+a { color: var(--focus); }
+label, .label { display: block; font-size: 13px; font-weight: 600; color: var(--dim); margin-bottom: 6px; }
+.hint { font-size: 13px; color: var(--dim); margin: 6px 0 0; }
+.hint.warn { color: var(--warn); }
+input[type="text"], input[type="search"], select {
+  width: 100%; font: inherit; color: var(--text); background: var(--field); border: 1px solid var(--line);
+  border-radius: 8px; padding: 10px 12px; }
+input:focus-visible, select:focus-visible, button:focus-visible, .card:focus-visible, a:focus-visible, summary:focus-visible {
+  outline: 2px solid var(--focus); outline-offset: 2px; }
+.affix { position: relative; }
+.affix input { padding-right: 64px; }
+.affix i { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); font-style: normal; color: var(--faint); font-size: 13px; pointer-events: none; }
+.results { list-style: none; margin: 8px 0 0; padding: 0; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.results:empty { display: none; }
+.results li + li { border-top: 1px solid var(--line); }
+.results button { display: flex; width: 100%; justify-content: space-between; gap: 12px; text-align: left; font: inherit;
+                  color: var(--text); background: var(--panel); border: 0; padding: 10px 12px; cursor: pointer; }
+.results button:hover { background: var(--chip); }
+.results small { color: var(--dim); font-size: 13px; text-align: right; }
+.note { font-size: 14px; color: var(--dim); margin: 8px 0 0; min-height: 1.5em; }
+.chosen { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; padding: 14px; border-radius: 10px;
+          background: var(--chip); }
+.chosen b { display: block; font-size: 16px; }
+.chosen span { color: var(--dim); font-size: 13px; }
+.reading { margin-top: 10px; font-size: 15px; }
+.reading .num { font-weight: 700; font-variant-numeric: tabular-nums; }
+.quiet { background: transparent; border: 1px solid var(--line); color: var(--text); border-radius: 8px; padding: 6px 12px;
+         font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.popular { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.popular button { background: var(--panel); border: 1px solid var(--line); color: var(--text); border-radius: 999px; padding: 6px 12px; font: inherit; font-size: 14px; cursor: pointer; }
+.popular button:hover { border-color: var(--dim); }
+.stack { display: grid; gap: 18px; }
+.pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.seg { display: flex; flex-wrap: wrap; gap: 6px; }
+.seg button { flex: 1 1 auto; background: var(--field); border: 1px solid var(--line); color: var(--text); border-radius: 8px;
+              padding: 9px 12px; font: inherit; font-size: 14px; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--text); color: var(--bg); border-color: var(--text); font-weight: 600; }
+details summary { cursor: pointer; font-size: 14px; font-weight: 600; color: var(--dim); }
+details[open] summary { margin-bottom: 12px; }
+.nav { display: flex; justify-content: space-between; gap: 12px; margin-top: 22px; }
+.btn { font: inherit; font-weight: 600; border-radius: 8px; padding: 11px 18px; cursor: pointer; border: 1px solid transparent; }
+.btn.primary { background: var(--accent); color: var(--accent-ink); }
+.btn.primary:disabled { opacity: .45; cursor: not-allowed; }
+.btn.secondary { background: transparent; color: var(--text); border-color: var(--line); }
+.summary { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 8px 18px; margin: 0; }
+.summary dt { color: var(--dim); font-size: 14px; }
+.summary dd { margin: 0; font-weight: 600; overflow-wrap: anywhere; }
+.pairing { margin-top: 18px; border: 1px dashed var(--line); border-radius: 12px; padding: 18px; }
+.pairing h2 { font-size: 17px; margin: 0 0 6px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.badge { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; border-radius: 4px; padding: 2px 7px;
+         background: var(--chip); color: var(--warn); border: 1px solid var(--line); font-weight: 700; }
+.code { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+.code input { flex: 1 1 160px; min-width: 0; font-family: var(--mono); letter-spacing: .3em; text-transform: uppercase; font-size: 18px; }
+pre { background: var(--field); border: 1px solid var(--line); border-radius: 8px; padding: 12px; overflow-x: auto;
+      font: 12.5px/1.5 var(--mono); margin: 0; }
+.preview { display: grid; justify-items: center; gap: 12px; text-align: center; }
+.bezel { width: min(300px, 74vw); aspect-ratio: 1; max-width: 100%; border-radius: 50%; padding: 4.5%;
+         background: radial-gradient(circle at 32% 26%, var(--bezel-hi), var(--bezel-lo) 72%);
+         box-shadow: 0 18px 40px rgba(10, 12, 15, .28), inset 0 1px 0 rgba(255, 255, 255, .08); }
+.bezel svg { display: block; width: 100%; height: 100%; border-radius: 50%; background: #000; }
+.preview h2 { font-size: 15px; margin: 4px 0 0; }
+.preview p { margin: 0; font-size: 13px; color: var(--dim); max-width: 34ch; }
+.preview .say { color: var(--text); font-size: 14px; min-height: 1.5em; }
+footer { margin-top: 36px; font-size: 13px; color: var(--faint); }
+footer a { color: var(--dim); }
+@media (max-width: 899px) { .bezel { width: min(220px, 60vw); } }
+@media (prefers-reduced-motion: reduce) { .card, #needle { transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="shell">
+  <div class="top">
+    <div class="brand"><b>MekaTrona</b> &nbsp;New feed</div>
+    <a href="./">Recipe page</a>
+  </div>
+  <div class="mock"><strong>Mock</strong><span>Readings are live, but nothing is saved and no Dial is changed.</span></div>
+
+  <div class="layout">
+    <aside class="preview" aria-label="Preview of your Dial">
+      <div class="bezel"><svg id="dial" viewBox="0 0 240 240" role="img" aria-label="Your Dial"></svg></div>
+      <h2>How your Dial will look</h2>
+      <p class="say" id="say" aria-live="polite"></p>
+      <p>Drawn with the Dial's layout and rules, in your browser's fonts.</p>
+    </aside>
+
+    <main class="steps">
+      <ol class="progress" id="progress">
+        <li>What</li><li id="p2">Where</li><li>Set up</li><li>Send</li>
+      </ol>
+
+      <!-- 1. what -->
+      <section id="s1">
+        <p class="eyebrow">Step 1 of 4</p>
+        <h1>What should your Dial show?</h1>
+        <div class="cards">
+          <button class="card" type="button" data-kind="temp" aria-pressed="false">
+            <svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 5a4 4 0 0 0-4 4v12.5a7 7 0 1 0 8 0V9a4 4 0 0 0-4-4z"/><path d="M18 14v11"/><circle cx="18" cy="27" r="2.5" fill="currentColor"/></svg>
+            <b>Temperature</b><span>Outside, in any city.</span>
+          </button>
+          <button class="card" type="button" data-kind="air" aria-pressed="false">
+            <svg viewBox="0 0 36 36" fill="currentColor"><circle cx="9" cy="11" r="2.2"/><circle cx="19" cy="8" r="1.6"/><circle cx="27" cy="13" r="2.6"/><circle cx="13" cy="20" r="1.4"/><circle cx="22" cy="21" r="2"/><circle cx="8" cy="28" r="1.8"/><circle cx="18" cy="29" r="2.4"/><circle cx="28" cy="26" r="1.5"/></svg>
+            <b>Air quality</b><span>PM2.5, the fine dust in the air.</span>
+          </button>
+          <button class="card" type="button" data-kind="coin" aria-pressed="false">
+            <svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="18" r="13"/><path d="M14 11h6a3.5 3.5 0 0 1 0 7h-6zm0 7h7a3.5 3.5 0 0 1 0 7h-7zm2-10v3m0 14v3m4-20v3m0 14v3" stroke-linejoin="round"/></svg>
+            <b>Crypto price</b><span>A coin's price, in your currency.</span>
+          </button>
+        </div>
+        <p class="aside">Something else? Build it on the <a href="./">recipe page</a>.</p>
+      </section>
+
+      <!-- 2. where, or which coin -->
+      <section id="s2" hidden>
+        <p class="eyebrow">Step 2 of 4</p>
+        <h1 id="s2title">Which city?</h1>
+        <div class="panel stack">
+          <div id="finder">
+            <label for="q" id="qlabel">City</label>
+            <input id="q" type="search" autocomplete="off" spellcheck="false" placeholder="Start typing a city">
+            <ul class="results" id="results" role="listbox" aria-labelledby="qlabel"></ul>
+            <p class="note" id="qnote" aria-live="polite"></p>
+            <div id="popularBox" hidden>
+              <span class="label">Popular</span>
+              <div class="popular" id="popular"></div>
+            </div>
+          </div>
+          <div id="picked" hidden>
+            <div class="chosen">
+              <div><b id="pickedName"></b><span id="pickedWhere"></span></div>
+              <button class="quiet" type="button" id="change">Change</button>
+            </div>
+            <p class="reading" id="reading" aria-live="polite"></p>
+          </div>
+          <div id="currencyBox" hidden>
+            <label for="currency">Price in</label>
+            <select id="currency">
+              <option value="zar">Rand (ZAR)</option>
+              <option value="usd">US dollar (USD)</option>
+              <option value="eur">Euro (EUR)</option>
+              <option value="gbp">Pound (GBP)</option>
+            </select>
+          </div>
+          <p class="hint" id="credit"></p>
+        </div>
+      </section>
+
+      <!-- 3. set up -->
+      <section id="s3" hidden>
+        <p class="eyebrow">Step 3 of 4</p>
+        <h1>Set up the dial</h1>
+        <div class="panel stack">
+          <div>
+            <label for="name">Name</label>
+            <input id="name" type="text" autocomplete="off" maxlength="40">
+            <p class="hint warn" id="nameHint" hidden>The Dial cuts this name to fit. A shorter one shows whole.</p>
+          </div>
+          <div>
+            <span class="label" id="scaleLabel">Scale</span>
+            <div class="pair" role="group" aria-labelledby="scaleLabel">
+              <div class="affix"><input id="lo" type="text" inputmode="decimal" autocomplete="off" aria-label="Scale from"><i class="unitTag"></i></div>
+              <div class="affix"><input id="hi" type="text" inputmode="decimal" autocomplete="off" aria-label="Scale to"><i class="unitTag"></i></div>
+            </div>
+            <p class="hint" id="scaleHint"></p>
+          </div>
+          <div>
+            <label for="target">Target (optional)</label>
+            <div class="affix"><input id="target" type="text" inputmode="decimal" autocomplete="off"><i class="unitTag"></i></div>
+            <p class="hint" id="targetHint">With a target, the ring lights round it.</p>
+          </div>
+          <div id="goodBox" hidden>
+            <span class="label" id="goodLabel">Good when</span>
+            <div class="seg" role="group" aria-labelledby="goodLabel">
+              <button type="button" data-good="high" aria-pressed="false">Higher</button>
+              <button type="button" data-good="low" aria-pressed="false">Lower</button>
+              <button type="button" data-good="mid" aria-pressed="false">Near the target</button>
+            </div>
+          </div>
+          <details>
+            <summary>More options</summary>
+            <label for="stale">Show STALE after</label>
+            <div class="affix"><input id="stale" type="text" inputmode="numeric" autocomplete="off"><i>minutes</i></div>
+            <p class="hint">If no new reading arrives by then, the Dial says STALE and how old its last one is.</p>
+          </details>
+        </div>
+      </section>
+
+      <!-- 4. send -->
+      <section id="s4" hidden>
+        <p class="eyebrow">Step 4 of 4</p>
+        <h1>Send it to your Dial</h1>
+        <div class="panel">
+          <dl class="summary" id="summary"></dl>
+          <div class="pairing">
+            <h2>Pair your Dial <span class="badge">Not built yet</span></h2>
+            <p class="hint">On your Dial, open Settings and choose Add feed. It shows a 6-character code. Type it here.</p>
+            <form class="code" id="pairForm">
+              <input id="code" type="text" maxlength="6" autocomplete="off" spellcheck="false" aria-label="Code from your Dial" placeholder="K7Q4MP">
+              <button class="btn primary" type="submit">Add to my Dial</button>
+            </form>
+            <p class="note" id="pairNote" aria-live="polite"></p>
+          </div>
+          <details style="margin-top:18px">
+            <summary>The recipe, for builders</summary>
+            <p class="hint" style="margin:0 0 10px" id="recipePath"></p>
+            <pre id="recipe"></pre>
+          </details>
+        </div>
+      </section>
+
+      <div class="nav">
+        <button class="btn secondary" type="button" id="back" hidden>Back</button>
+        <span></span>
+        <button class="btn primary" type="button" id="next" hidden>Next</button>
+      </div>
+    </main>
+  </div>
+
+  <footer>Weather and air quality data by <a href="https://open-meteo.com/">Open-Meteo.com</a>, under CC BY 4.0.
+    Prices by <a href="https://www.coingecko.com/">CoinGecko</a>. Both free APIs are for non-commercial use.</footer>
+</div>
+
+<script id="dial-rules">
+/* The Dial's rules for the preview: where the needle points, which ring segments light, and how
+   the number and the scale ends are written. A small copy of what the Dial runs, checked against
+   the same shared test cases before this page was published. */
+var DialRules = (function () {
+  "use strict";
+  var SWEEP = 250, START = -125, TICKS = 16, MARK_BAND = 0.10, SEGMENTS = 24;
+  var BANDS = { high: ["down", "flat", "up"], low: ["up", "flat", "down"], mid: ["down", "up", "down"] };
+
+  function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+
+  function position(value, lo, hi) {
+    var raw = (value - lo) / ((hi - lo) || 1);
+    return { t: clamp(raw, 0, 1), over: raw > 1, under: raw < 0 };
+  }
+
+  function bandEdges(zones, markT) {
+    if (!zones) return null;
+    if (zones.mode === "mark" && markT != null) {
+      var g = zones.polarity || "high";
+      if (g === "low") return [markT, Math.min(1, markT + MARK_BAND)];
+      if (g === "mid") return [Math.max(0, markT - MARK_BAND), Math.min(1, markT + MARK_BAND)];
+      return [Math.max(0, markT - MARK_BAND), markT];
+    }
+    return [Math.min(zones.low, zones.high), Math.max(zones.low, zones.high)];
+  }
+
+  /* Nothing lit without a target. With one: three green on its good side, one amber and two red
+     on the other, and (not full) the reach from the target to one segment past the needle. */
+  function ringPlan(p) {
+    var n = p.segments, out = [], i;
+    for (i = 0; i < n; i++) out.push(null);
+    if (p.mark == null || !(p.hi > p.lo)) return out;
+    var markT = clamp((p.mark - p.lo) / (p.hi - p.lo), 0, 1);
+    var edges = p.zones ? bandEdges(p.zones, markT) : null;
+    var bands = BANDS[(p.zones && p.zones.polarity) || "high"] || BANDS.high;
+    var dir = bands[0] === "up" ? -1 : 1, good = [], bad = [];
+    for (i = 0; i < n; i++) (((i + 0.5) / n >= markT ? 1 : -1) === dir ? good : bad).push(i);
+    good.sort(function (a, b) { return dir > 0 ? a - b : b - a; });
+    bad.sort(function (a, b) { return dir > 0 ? b - a : a - b; });
+    var greens = p.full ? good.length : 3, reds = p.full ? bad.length : 2;
+    good.slice(0, greens).forEach(function (k) { out[k] = "up"; });
+    bad.slice(0, 1).forEach(function (k) { out[k] = "flat"; });
+    bad.slice(1, 1 + reds).forEach(function (k) { out[k] = "down"; });
+    if (!p.full && p.value != null && edges) {
+      var t = position(p.value, p.lo, p.hi).t, ahead = t >= markT ? t + 1 / n : t - 1 / n;
+      var a = Math.min(markT, ahead), b = Math.max(markT, ahead), c;
+      for (i = 0; i < n; i++) {
+        if (out[i] != null) continue;
+        c = (i + 0.5) / n;
+        if (c >= a - 1e-9 && c <= b + 1e-9) out[i] = bands[c >= edges[1] ? 2 : c >= edges[0] ? 1 : 0];
+      }
+    }
+    return out;
+  }
+
+  function decimalsFor(step) {
+    if (step >= 5) return 0;
+    if (step >= 0.5) return 1;
+    if (step >= 0.05) return 2;
+    if (step >= 0.005) return 3;
+    return clamp(Math.ceil(-Math.log10(step)) + 1, 4, 8);
+  }
+
+  function scaleDecimals(lo, hi, v) {
+    var tick = (Math.abs(hi - lo) || Math.abs(v) || 1) / TICKS;
+    return (tick >= 1 && lo % 1 === 0 && hi % 1 === 0) ? 0 : decimalsFor(tick);
+  }
+
+  /* Decimal text rounded to dp places, half away from zero, on the digits themselves. */
+  function roundText(text, dp) {
+    var neg = text.charAt(0) === "-", body = text.replace(/^[+-]/, ""), dot = body.indexOf(".");
+    var whole = (dot < 0 ? body : body.slice(0, dot)).replace(/^0+(?=\d)/, "");
+    var frac = dot < 0 ? "" : body.slice(dot + 1), nonzero = /[1-9]/.test(whole + frac);
+    while (frac.length < dp) frac += "0";
+    if (frac.length > dp) {
+      var digits = (whole + frac.slice(0, dp)).split(""), i, carry, d;
+      if (frac.charAt(dp) >= "5") {
+        for (i = digits.length - 1, carry = 1; i >= 0 && carry; i--) {
+          d = +digits[i] + 1;
+          digits[i] = String(d % 10);
+          carry = d === 10 ? 1 : 0;
+        }
+        if (carry) digits.unshift("1");
+      }
+      whole = digits.slice(0, digits.length - dp).join("") || "0";
+      frac = digits.slice(digits.length - dp).join("");
+    }
+    return (neg && nonzero ? "-" : "") + whole + (dp ? "." + frac : "");
+  }
+
+  function numberText(n) {
+    var s = String(n);
+    return /^[+-]?\d+(\.\d+)?$/.test(s) ? s : n.toFixed(8);
+  }
+
+  function plainValue(text, lo, hi) { return roundText(text, scaleDecimals(lo, hi, +text)); }
+
+  function suffixFor(lo, hi) {
+    var a = Math.max(Math.abs(lo), Math.abs(hi));
+    return a >= 1e9 ? [9, "B"] : a >= 1e6 ? [6, "M"] : a >= 1e4 ? [3, "k"] : [0, ""];
+  }
+
+  /* The decimal point moved left by digits, on the text, so no digit changes on the way. */
+  function shiftText(text, digits) {
+    if (!digits) return text;
+    var neg = text.charAt(0) === "-", body = text.replace(/^[+-]/, ""), dot = body.indexOf(".");
+    var whole = dot < 0 ? body : body.slice(0, dot), frac = dot < 0 ? "" : body.slice(dot + 1);
+    while (whole.length < digits + 1) whole = "0" + whole;
+    return (neg ? "-" : "") + whole.slice(0, whole.length - digits) + "." + whole.slice(whole.length - digits) + frac;
+  }
+
+  function compactValue(text, lo, hi) {
+    var s = suffixFor(lo, hi);
+    if (!s[1]) return plainValue(text, lo, hi);
+    return roundText(shiftText(text, s[0]), decimalsFor((hi - lo) / TICKS / Math.pow(10, s[0]))) + s[1];
+  }
+
+  function compactLabel(n, lo, hi) {
+    var s = suffixFor(lo, hi), text = numberText(n);
+    if (!s[1] || n === 0) return plainValue(text, lo, hi);
+    var t = shiftText(text, s[0]);
+    if (t.indexOf(".") >= 0) t = t.replace(/0+$/, "").replace(/\.$/, "");
+    return t + s[1];
+  }
+
+  /* The unit as the Dial's fonts can spell it. */
+  var WORDS = { "°C": "C", "°F": "F", "°": "deg" };
+  var CHARS = { "µ": "u", "μ": "u", "²": "2", "³": "3", "°": "deg",
+                "€": "EUR", "£": "GBP", "¥": "JPY" };
+  function asciiUnit(unit) {
+    var u = unit == null ? "" : String(unit), out = "", ch, code;
+    if (WORDS[u] != null) return WORDS[u];
+    for (var i = 0; i < u.length; i++) {
+      ch = u.charAt(i);
+      code = u.charCodeAt(i);
+      if (code >= 0xd800 && code <= 0xdbff && i + 1 < u.length) { ch += u.charAt(i + 1); i++; }
+      out += (ch.length === 1 && code >= 0x20 && code <= 0x7e) ? ch : (CHARS[ch] != null ? CHARS[ch] : "?");
+    }
+    return out;
+  }
+
+  function ageText(seconds) {
+    var s = Math.max(0, Math.round(seconds));
+    return s < 60 ? s + "s" : s < 3600 ? Math.round(s / 60) + "m" : Math.round(s / 3600) + "h";
+  }
+
+  return { SWEEP: SWEEP, START: START, SEGMENTS: SEGMENTS, position: position, ringPlan: ringPlan,
+           compactValue: compactValue, compactLabel: compactLabel, numberText: numberText,
+           asciiUnit: asciiUnit, ageText: ageText };
+})();
+if (typeof module === "object" && module.exports) module.exports = DialRules;
+</script>
+
+<script>
+(function () {
+  "use strict";
+  var R = DialRules;
+
+  /* ---- the face, as the Dial draws it: its geometry and colours, 1 unit to 1 pixel ---- */
+  var G = { R_LED: 99, LED_W: 5, LED_GAP: 3.2, R_TICK_IN: 86, R_TICK_OUT: 93, TICK_W: 2.4, R_LABEL: 92, LABEL_DEG: 7,
+            NEEDLE: 66, TAIL: 17, HALF_W: 3.2, CAP_R: 9, RIM: 1.5, VALUE_MAX_W: 104, UNIT_GAP: 3, BAND_MID: 175.5,
+            NAME_TOP: 195, NAME_LIMIT: 146, STATE_TOP: 216, STATE_LIMIT: 111 };
+  var C = { bg: "#14171C", off: "#4B5057", tick: "#E8ECF3", label: "#AEB6C4", needle: "#FF4D4D", cap: "#C9CED8",
+            rim: "#4A505C", value: "#FFFFFF", text: "#E6E9EF", state: "#FFFFFF",
+            up: "#22C55E", flat: "#F59E0B", down: "#EF4444" };
+  /* The Dial's fonts, by the height of their digits: FreeSans Bold, FreeSans at two sizes, and the
+     8 x 8 font for the small lines. FreeSans is a Helvetica clone, so Helvetica or Arial stand in. */
+  var SANS = '"FreeSans", "Helvetica Neue", Helvetica, Arial, "Liberation Sans", sans-serif';
+  var PIX = 'ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace';
+  var BOLD28 = { family: SANS, size: 37.8, weight: 700, digits: 27 };
+  var SANS23 = { family: SANS, size: 23.4, weight: 400, digits: 16 };
+  var SANS18 = { family: SANS, size: 18, weight: 400, digits: 13 };
+  var SMALL = { family: PIX, size: 10.5, weight: 700, digits: 7 };
+  var VALUE_FONTS = [BOLD28, SANS23, SANS18, SMALL];
+  var MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+  var ctx = document.createElement("canvas").getContext("2d");
+  function css(f) { return f.weight + " " + f.size + "px " + f.family; }
+  function width(f, s) { ctx.font = css(f); return ctx.measureText(s).width; }
+  function fit(f, s, max) {
+    if (width(f, s) <= max) return s;
+    while (s && width(f, s + "...") > max) s = s.slice(0, -1);
+    return s + "...";
+  }
+  function polar(r, deg) { var a = deg * Math.PI / 180; return [120 + r * Math.sin(a), 120 - r * Math.cos(a)]; }
+  function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+  function text(f, s, x, baseline, colour, anchor) {
+    return '<text x="' + x.toFixed(2) + '" y="' + baseline.toFixed(2) + '" fill="' + colour + '" font-family=\'' + f.family +
+           '\' font-size="' + f.size + '" font-weight="' + f.weight + '" text-anchor="' + (anchor || "start") + '">' + esc(s) + "</text>";
+  }
+
+  function valuePieces(t, unit) {
+    var vf, uf, wv, wu, i;
+    for (i = 0; i < VALUE_FONTS.length; i++) {
+      vf = VALUE_FONTS[i];
+      uf = i < 2 ? SANS18 : SMALL;                      // a unit is never bigger than its number
+      wv = width(vf, t);
+      wu = unit ? width(uf, unit) + G.UNIT_GAP : 0;
+      if (wv + wu <= G.VALUE_MAX_W) break;
+    }
+    if (unit && wv + wu > G.VALUE_MAX_W) {             // the number is never cut; its unit may be
+      unit = fit(uf, unit, Math.max(0, G.VALUE_MAX_W - wv - G.UNIT_GAP));
+      wu = width(uf, unit) + G.UNIT_GAP;
+    }
+    var left = Math.floor(120 - (wv + wu) / 2 + 0.5), top = Math.floor(G.BAND_MID - vf.digits / 2 + 0.5);
+    var out = text(vf, t, left, top + vf.digits, C.value);
+    if (unit) out += text(uf, unit, left + wv + G.UNIT_GAP, top + uf.digits, C.text);
+    return out;
+  }
+  function fitsBeside(t, unit) {
+    return VALUE_FONTS.slice(0, 2).some(function (vf) { return width(vf, t) + G.UNIT_GAP + width(SANS18, unit) <= G.VALUE_MAX_W; });
+  }
+  function nameFits(name) { return width(SANS18, name) <= G.NAME_LIMIT; }
+  function fitsUp(name, unit) {
+    return width(SANS18, name ? " (" + unit + ")" : unit) + (name ? width(SANS18, "...") : 0) <= G.NAME_LIMIT;
+  }
+  function nameLine(name, unit) {
+    var tail = unit ? (name ? " (" + unit + ")" : unit) : "";
+    if (!name && !tail) return { svg: "", cut: false };
+    var shown = name ? fit(SANS18, name, G.NAME_LIMIT - width(SANS18, tail)) + tail : fit(SANS18, tail, G.NAME_LIMIT);
+    return { svg: text(SANS18, shown, 120, G.NAME_TOP + SANS18.digits, C.text, "middle"),
+             cut: !!name && shown !== name + tail };
+  }
+  function pad(n) { return (n < 10 ? "0" : "") + n; }
+  function readLine(at, now) {
+    var d = new Date(at * 1000), today = new Date(now * 1000);
+    if (d.toDateString() !== today.toDateString() && d < today) return "read " + d.getDate() + " " + MONTHS[d.getMonth()];
+    var zone = "";
+    try {
+      var part = new Intl.DateTimeFormat(undefined, { timeZoneName: "short" }).formatToParts(d)
+        .filter(function (p) { return p.type === "timeZoneName"; })[0];
+      zone = part ? part.value : "";
+    } catch (e) { zone = ""; }
+    return ("read " + pad(d.getHours()) + ":" + pad(d.getMinutes()) + " " + zone).trim();
+  }
+  function stateLine(v, pos, ends, unit, now) {
+    var forms, colour = C.state;
+    if (v.value == null) forms = ["NO DATA"];
+    else {
+      var stale = v.stale ? ["STALE " + R.ageText(now - v.at)] : [];
+      if (pos.over || pos.under) {
+        var word = pos.over ? "OVER " : "UNDER ", end = pos.over ? ends[1] : ends[0];
+        forms = [word + end + (unit ? " " + unit : ""), word + end, word.trim()].map(function (p) { return stale.concat([p]).join("  "); });
+      } else if (stale.length) forms = stale;
+      else if (v.at != null) { forms = [readLine(v.at, now)]; colour = C.label; }
+      else return "";
+    }
+    var shown = null;
+    for (var i = 0; i < forms.length; i++) if (width(SMALL, forms[i]) <= G.STATE_LIMIT) { shown = forms[i]; break; }
+    if (shown == null) shown = fit(SMALL, forms[forms.length - 1], G.STATE_LIMIT);
+    return text(SMALL, shown, 120, G.STATE_TOP + SMALL.digits, colour, "middle");
+  }
+
+  /* v: { name, value (decimal text or null), unit, lo, hi (numbers, or null with no scale yet),
+          mark, good, stale, at } */
+  function drawDial(v, now) {
+    var svg = '<circle cx="120" cy="120" r="120" fill="' + C.bg + '"/>';
+    var scaled = v.lo != null && v.hi != null && v.hi > v.lo;
+    var ring = scaled ? R.ringPlan({ value: v.value == null ? null : +v.value, lo: v.lo, hi: v.hi, mark: v.mark,
+                                     zones: v.mark == null ? null : { mode: "mark", polarity: v.good }, segments: R.SEGMENTS, full: false })
+                      : new Array(R.SEGMENTS).fill(null);
+    var span = R.SWEEP / R.SEGMENTS, i, a0, a1, p0, p1;
+    for (i = 0; i < R.SEGMENTS; i++) {
+      a0 = R.START + i * span + G.LED_GAP / 2;
+      a1 = a0 + span - G.LED_GAP;
+      p0 = polar(G.R_LED, a0); p1 = polar(G.R_LED, a1);
+      svg += '<path d="M' + p0[0].toFixed(2) + " " + p0[1].toFixed(2) + " A" + G.R_LED + " " + G.R_LED + " 0 0 1 " +
+             p1[0].toFixed(2) + " " + p1[1].toFixed(2) + '" stroke="' + C[ring[i] || "off"] + '" stroke-width="' + G.LED_W + '" fill="none"/>';
+    }
+    for (i = 0; i < 5; i++) {
+      p0 = polar(G.R_TICK_IN, R.START + i * R.SWEEP / 4); p1 = polar(G.R_TICK_OUT, R.START + i * R.SWEEP / 4);
+      svg += '<line x1="' + p0[0].toFixed(2) + '" y1="' + p0[1].toFixed(2) + '" x2="' + p1[0].toFixed(2) + '" y2="' + p1[1].toFixed(2) +
+             '" stroke="' + C.tick + '" stroke-width="' + G.TICK_W + '" stroke-linecap="round"/>';
+    }
+    var unit = R.asciiUnit(v.unit), cut = false;
+    if (scaled) {
+      var ends = [R.compactLabel(v.lo, v.lo, v.hi), R.compactLabel(v.hi, v.lo, v.hi)];
+      var pos = v.value == null ? null : R.position(+v.value, v.lo, v.hi);
+      if (pos) {
+        [[ends[0], R.START - G.LABEL_DEG], [ends[1], -R.START + G.LABEL_DEG]].forEach(function (e) {
+          var p = polar(G.R_LABEL, e[1]), top = Math.floor(p[1] - 4 + 0.5);
+          svg += text(SMALL, e[0], p[0], top + SMALL.digits, C.label, "middle");
+        });
+        var deg = R.START + pos.t * R.SWEEP;
+        svg += '<g id="needle" style="transform: rotate(' + deg.toFixed(2) + 'deg); transform-origin: 120px 120px; transition: transform .7s cubic-bezier(.3,.8,.3,1)">' +
+               '<polygon points="120,' + (120 - G.NEEDLE) + " " + (120 + G.HALF_W) + ",120 120," + (120 + G.TAIL) + " " + (120 - G.HALF_W) +
+               ',120" fill="' + C.needle + '"/></g>';
+      }
+      var moved = "";
+      if (v.value == null) svg += valuePieces("--", "");
+      else {
+        var t = R.compactValue(v.value, v.lo, v.hi), beside = unit;
+        if (unit && !fitsBeside(t, unit) && fitsUp(v.name, unit)) { beside = ""; moved = unit; }
+        svg += valuePieces(t, beside);
+      }
+      var nl = nameLine(v.name, moved);
+      svg += nl.svg;
+      cut = nl.cut;
+      svg += stateLine(v, pos || {}, ends, unit, now);
+    } else if (v.value == null) {
+      svg += valuePieces("--", "") + stateLine(v, {}, ["", ""], unit, now);
+    }
+    svg += '<circle cx="120" cy="120" r="' + (G.CAP_R + G.RIM / 2) + '" fill="' + C.rim + '"/>' +
+           '<circle cx="120" cy="120" r="' + (G.CAP_R - G.RIM / 2) + '" fill="' + C.cap + '"/>';
+    return { svg: svg, cut: cut };
+  }
+
+  /* ---- what each kind of feed needs ---- */
+  var KINDS = {
+    temp: { step2: "Which city?", label: "Where", lo: "0", hi: "40", target: "", good: "mid", stale: "60",
+            credit: "Weather data by Open-Meteo.com.", what: "Temperature" },
+    air: { step2: "Which city?", label: "Where", lo: "0", hi: "50", target: "15", good: "low", stale: "60",
+           credit: "Air quality data by Open-Meteo.com.", what: "Air quality (PM2.5)" },
+    coin: { step2: "Which coin?", label: "Coin", lo: "", hi: "", target: "", good: "high", stale: "30",
+            credit: "Prices by CoinGecko.", what: "Price" }
+  };
+  var POPULAR = [["bitcoin", "Bitcoin", "BTC"], ["ethereum", "Ethereum", "ETH"], ["solana", "Solana", "SOL"],
+                 ["ripple", "XRP", "XRP"], ["binancecoin", "BNB", "BNB"], ["cardano", "Cardano", "ADA"]];
+
+  var S = { step: 1, kind: null, place: null, coin: null, currency: "zar", reading: null, readingState: "idle",
+            name: "", nameEdited: false, lo: "", hi: "", target: "", good: "high", stale: "60" };
+  var $ = function (id) { return document.getElementById(id); };
+
+  function num(s) {
+    var t = String(s == null ? "" : s).replace(/[\s_]/g, "");
+    if (t.indexOf(".") < 0 && (t.match(/,/g) || []).length === 1) t = t.replace(",", ".");
+    else t = t.replace(/,/g, "");
+    return t === "" || !/^[+-]?(\d+\.?\d*|\.\d+)$/.test(t) ? null : +t;
+  }
+  function sourceUrl() {
+    if (S.kind === "coin") return "https://api.coingecko.com/api/v3/simple/price?ids=" + encodeURIComponent(S.coin.id) +
+                                  "&vs_currencies=" + S.currency + "&include_last_updated_at=true";
+    var lat = S.place.latitude.toFixed(2), lon = S.place.longitude.toFixed(2);
+    return S.kind === "temp" ? "https://api.open-meteo.com/v1/forecast?latitude=" + lat + "&longitude=" + lon + "&current=temperature_2m"
+                             : "https://air-quality-api.open-meteo.com/v1/air-quality?latitude=" + lat + "&longitude=" + lon + "&current=pm2_5";
+  }
+  function unitNow() {
+    if (S.kind === "coin") return S.currency.toUpperCase();
+    return S.reading && S.reading.unit ? S.reading.unit : (S.kind === "temp" ? "°C" : "μg/m³");
+  }
+  function scale() {
+    var lo = num(S.lo), hi = num(S.hi);
+    return lo != null && hi != null && hi > lo ? [lo, hi] : null;
+  }
+  function staleS() { var m = num(S.stale); return m != null && m > 0 ? Math.round(m * 60) : null; }
+  function nowS() { return Math.floor(Date.now() / 1000); }
+  function clock(at) { var d = new Date(at * 1000); return pad(d.getHours()) + ":" + pad(d.getMinutes()); }
+  function pretty(textValue) {
+    try { return new Intl.NumberFormat(undefined, { maximumFractionDigits: 8 }).format(+textValue); }
+    catch (e) { return textValue; }
+  }
+
+  /* ---- the reading, fetched live from the source the recipe would use ---- */
+  var readingSeq = 0;
+  function fetchReading() {
+    var seq = ++readingSeq;
+    S.reading = null;
+    S.readingState = "loading";
+    render();
+    fetch(sourceUrl(), { cache: "no-store" }).then(function (r) {
+      if (!r.ok) throw new Error("status " + r.status);
+      return r.json();
+    }).then(function (j) {
+      if (seq !== readingSeq) return;
+      var value, unit, at;
+      if (S.kind === "coin") {
+        var row = j[S.coin.id] || {};
+        value = row[S.currency];
+        unit = S.currency.toUpperCase();
+        at = row.last_updated_at;
+      } else {
+        var key = S.kind === "temp" ? "temperature_2m" : "pm2_5";
+        value = j.current && j.current[key];
+        unit = j.current_units && j.current_units[key];
+        at = j.current && j.current.time ? Date.parse(j.current.time + "Z") / 1000 - (j.utc_offset_seconds || 0) : null;
+      }
+      if (typeof value !== "number" || !isFinite(value)) throw new Error("no value");
+      S.reading = { text: R.numberText(value), unit: unit, at: typeof at === "number" && isFinite(at) ? at : null };
+      S.readingState = "ok";
+      render();
+    }).catch(function () {
+      if (seq !== readingSeq) return;
+      S.readingState = "failed";
+      render();
+    });
+  }
+
+  /* ---- search: cities from Open-Meteo, coins from CoinGecko ---- */
+  var searchSeq = 0, searchTimer = null;
+  function search(q) {
+    clearTimeout(searchTimer);
+    var seq = ++searchSeq;
+    $("results").innerHTML = "";
+    if (q.trim().length < 2) { $("qnote").textContent = ""; return; }
+    $("qnote").textContent = "Searching…";
+    searchTimer = setTimeout(function () {
+      var url = S.kind === "coin"
+        ? "https://api.coingecko.com/api/v3/search?query=" + encodeURIComponent(q.trim())
+        : "https://geocoding-api.open-meteo.com/v1/search?name=" + encodeURIComponent(q.trim()) + "&count=8&language=en&format=json";
+      fetch(url).then(function (r) { if (!r.ok) throw new Error("status " + r.status); return r.json(); })
+        .then(function (j) {
+          if (seq !== searchSeq) return;
+          var rows = S.kind === "coin"
+            ? (j.coins || []).slice(0, 8).map(function (c) { return { id: c.id, name: c.name, sub: c.symbol, data: c }; })
+            : (j.results || []).map(function (p) {
+                return { name: p.name, sub: [p.admin1, p.country].filter(Boolean).join(", "), data: p };
+              });
+          $("qnote").textContent = rows.length ? "" : "Nothing matched that.";
+          $("results").innerHTML = "";
+          rows.forEach(function (row) {
+            var li = document.createElement("li"), b = document.createElement("button");
+            li.setAttribute("role", "option");
+            b.type = "button";
+            b.innerHTML = "<span></span><small></small>";
+            b.firstChild.textContent = row.name;
+            b.lastChild.textContent = row.sub;
+            b.addEventListener("click", function () { choose(row.data); });
+            li.appendChild(b);
+            $("results").appendChild(li);
+          });
+        })
+        .catch(function () { if (seq === searchSeq) $("qnote").textContent = "Search is busy. Try again shortly."; });
+    }, 400);
+  }
+  function choose(d) {
+    if (S.kind === "coin") S.coin = { id: d.id, name: d.name, symbol: d.symbol };
+    else S.place = { name: d.name, where: [d.admin1, d.country].filter(Boolean).join(", "), latitude: d.latitude, longitude: d.longitude };
+    if (!S.nameEdited) S.name = S.kind !== "air" ? d.name : nameFits("PM2.5 " + d.name) ? "PM2.5 " + d.name : "PM2.5";
+    $("q").value = "";
+    $("results").innerHTML = "";
+    $("qnote").textContent = "";
+    fetchReading();
+  }
+
+  /* ---- the steps ---- */
+  function pickKind(kind) {
+    if (S.kind !== kind) {
+      var k = KINDS[kind];
+      S.kind = kind; S.place = null; S.coin = null; S.reading = null; S.readingState = "idle";
+      S.name = ""; S.nameEdited = false; S.lo = k.lo; S.hi = k.hi; S.target = k.target; S.good = k.good; S.stale = k.stale;
+      readingSeq++;
+    }
+    go(2);
+  }
+  function canNext() {
+    if (S.step === 2) return S.kind === "coin" ? !!S.coin : !!S.place;
+    if (S.step === 3) return S.name.trim() !== "" && !!scale() && staleS() != null;
+    return false;
+  }
+  function go(step) {
+    S.step = step;
+    render();
+    var h = document.querySelector("#s" + step + " h1");
+    if (h) { h.setAttribute("tabindex", "-1"); h.focus({ preventScroll: true }); }
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function recipe() {
+    var sc = scale(), mark = num(S.target), dial = { name: S.name.trim() };
+    if (S.kind === "coin") dial.unit = S.currency.toUpperCase();
+    dial.rangeLo = sc ? sc[0] : null;
+    dial.rangeHi = sc ? sc[1] : null;
+    if (mark != null) { dial.setHand = mark; dial.good = S.good; dial.zoneMode = "mark"; }
+    dial.staleAfterS = staleS();
+    var pick = S.kind === "coin"
+      ? { value: S.coin.id + "." + S.currency, at: S.coin.id + ".last_updated_at" }
+      : { value: "current." + (S.kind === "temp" ? "temperature_2m" : "pm2_5"),
+          unit: "current_units." + (S.kind === "temp" ? "temperature_2m" : "pm2_5"),
+          at: "current.time", atOffset: "utc_offset_seconds" };
+    return { schema: "mekatrona/recipe@0", source: sourceUrl(), pick: pick, dial: dial };
+  }
+  function slug() {
+    var base = (S.name || "feed").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "feed";
+    return base + (S.kind === "temp" ? "-temp" : S.kind === "air" ? "" : "-price");
+  }
+
+  function render() {
+    var k = S.kind ? KINDS[S.kind] : null;
+    [1, 2, 3, 4].forEach(function (n) { $("s" + n).hidden = S.step !== n; });
+    Array.prototype.forEach.call($("progress").children, function (li, i) {
+      li.className = i + 1 < S.step ? "done" : i + 1 === S.step ? "now" : "";
+      if (i + 1 === S.step) li.setAttribute("aria-current", "step"); else li.removeAttribute("aria-current");
+    });
+    $("p2").textContent = k ? k.label : "Where";
+    document.querySelectorAll(".card").forEach(function (c) { c.setAttribute("aria-pressed", String(c.dataset.kind === S.kind)); });
+    $("back").hidden = S.step === 1;
+    $("next").hidden = S.step === 1 || S.step === 4;
+    $("next").disabled = !canNext();
+    if (S.step === 4) { $("back").hidden = false; }
+
+    if (k) {
+      $("s2title").textContent = k.step2;
+      $("qlabel").textContent = S.kind === "coin" ? "Coin" : "City";
+      $("q").placeholder = S.kind === "coin" ? "Search coins" : "Start typing a city";
+      $("credit").textContent = k.credit;
+      var picked = S.kind === "coin" ? S.coin : S.place;
+      $("finder").hidden = !!picked;
+      $("picked").hidden = !picked;
+      $("currencyBox").hidden = S.kind !== "coin";
+      $("popularBox").hidden = S.kind !== "coin" || !!picked;
+      if (picked) {
+        $("pickedName").textContent = S.kind === "coin" ? S.coin.name : S.place.name;
+        $("pickedWhere").textContent = S.kind === "coin" ? " " + (S.coin.symbol || "").toUpperCase() : S.place.where;
+        var line = $("reading");
+        if (S.readingState === "loading") line.textContent = "Getting a reading…";
+        else if (S.readingState === "failed") line.textContent = "Couldn't get a reading just now. The Dial shows NO DATA until one arrives.";
+        else if (S.reading) {
+          line.innerHTML = '<span class="num"></span> <span class="u"></span>';
+          line.firstChild.textContent = pretty(S.reading.text);
+          line.lastChild.textContent = unitNow() + (S.reading.at != null ? ", as of " + clock(S.reading.at) : "");
+        } else line.textContent = "";
+      }
+    }
+
+    // step 3
+    if (S.step === 3 || S.step === 4) {
+      if (document.activeElement !== $("name")) $("name").value = S.name;
+      if (document.activeElement !== $("lo")) $("lo").value = S.lo;
+      if (document.activeElement !== $("hi")) $("hi").value = S.hi;
+      if (document.activeElement !== $("target")) $("target").value = S.target;
+      if (document.activeElement !== $("stale")) $("stale").value = S.stale;
+      document.querySelectorAll(".unitTag").forEach(function (u) { u.textContent = unitNow(); });
+      var lo = num(S.lo), hi = num(S.hi), sh = $("scaleHint");
+      sh.className = "hint";
+      if ((S.lo !== "" && lo == null) || (S.hi !== "" && hi == null)) { sh.textContent = "Use digits, with a point for decimals."; sh.className = "hint warn"; }
+      else if (lo != null && hi != null && !(hi > lo)) { sh.textContent = "The top of the scale must be more than the bottom."; sh.className = "hint warn"; }
+      else if (S.kind === "coin" && S.reading) sh.textContent = S.coin.name + " is " + pretty(S.reading.text) + " " + unitNow() + " now. Choose the range you want the needle to cover.";
+      else if (S.kind === "coin") sh.textContent = "Choose the range you want the needle to cover.";
+      else sh.textContent = "From " + (S.lo || "?") + " to " + (S.hi || "?") + " " + unitNow() + ".";
+      $("goodBox").hidden = num(S.target) == null;
+      document.querySelectorAll("[data-good]").forEach(function (b) { b.setAttribute("aria-pressed", String(b.dataset.good === S.good)); });
+    }
+
+    // step 4
+    if (S.step === 4) {
+      var sc = scale(), mark = num(S.target), goodWords = { high: "higher", low: "lower", mid: "near it" };
+      var rows = [["Shows", (k ? k.what : "") + (S.kind === "coin" ? " of " + S.coin.name : " in " + S.place.name)],
+                  ["Name", S.name.trim()],
+                  ["Scale", sc ? sc[0] + " to " + sc[1] + " " + unitNow() : ""],
+                  ["Target", mark == null ? "None, so the ring stays dark" : mark + " " + unitNow() + ", good when " + goodWords[S.good]],
+                  ["Stale after", S.stale + " minutes"]];
+      $("summary").innerHTML = "";
+      rows.forEach(function (r) {
+        var dt = document.createElement("dt"), dd = document.createElement("dd");
+        dt.textContent = r[0]; dd.textContent = r[1];
+        $("summary").appendChild(dt); $("summary").appendChild(dd);
+      });
+      $("recipePath").textContent = "What the recipe page would save, as recipes/" + slug() + ".json:";
+      $("recipe").textContent = JSON.stringify(recipe(), null, 2);
+    }
+
+    drawPreview();
+  }
+
+  function drawPreview() {
+    var sc = scale(), now = nowS(), r = S.reading;
+    var v = { name: S.name.trim(), value: r ? r.text : null, unit: S.kind ? unitNow() : "", lo: sc ? sc[0] : null, hi: sc ? sc[1] : null,
+              mark: num(S.target), good: S.good, at: r ? r.at : null,
+              stale: !!(r && r.at != null && staleS() != null && now - r.at > staleS()) };
+    if (S.step < 3 && !r) { v.lo = null; v.hi = null; }
+    var drawn = drawDial(v, now);
+    var needle = document.getElementById("needle"), before = needle ? needle.style.transform : null;
+    $("dial").innerHTML = drawn.svg;
+    var after = document.getElementById("needle");
+    if (after && before) {                               // let the needle sweep from where it was
+      var target = after.style.transform;
+      after.style.transition = "none";
+      after.style.transform = before;
+      after.getBoundingClientRect();
+      after.style.transition = "";
+      after.style.transform = target;
+    }
+    $("nameHint").hidden = !drawn.cut;
+    var say;
+    if (!S.kind) say = "Pick something to show.";
+    else if (S.readingState === "loading") say = "Getting a reading…";
+    else if (!r) say = S.kind === "coin" ? (S.coin ? "No reading, so the Dial shows NO DATA." : "Choose a coin.") : (S.place ? "No reading, so the Dial shows NO DATA." : "Choose a city.");
+    else if (!sc) say = "Set a scale to place the needle.";
+    else if (v.mark == null) say = "No target, so the ring stays dark.";
+    else say = "The ring lights round your target.";
+    $("say").textContent = say;
+  }
+
+  /* ---- wiring ---- */
+  document.querySelectorAll(".card").forEach(function (c) { c.addEventListener("click", function () { pickKind(c.dataset.kind); }); });
+  $("q").addEventListener("input", function () { search(this.value); });
+  $("change").addEventListener("click", function () {
+    if (S.kind === "coin") S.coin = null; else S.place = null;
+    S.reading = null; S.readingState = "idle"; readingSeq++;
+    render();
+    $("q").focus();
+  });
+  POPULAR.forEach(function (c) {
+    var b = document.createElement("button");
+    b.type = "button";
+    b.textContent = c[1];
+    b.addEventListener("click", function () { choose({ id: c[0], name: c[1], symbol: c[2] }); });
+    $("popular").appendChild(b);
+  });
+  $("currency").addEventListener("change", function () { S.currency = this.value; if (S.coin) fetchReading(); else render(); });
+  $("name").addEventListener("input", function () { S.name = this.value; S.nameEdited = true; render(); });
+  ["lo", "hi", "target", "stale"].forEach(function (id) { $(id).addEventListener("input", function () { S[id] = this.value; render(); }); });
+  document.querySelectorAll("[data-good]").forEach(function (b) { b.addEventListener("click", function () { S.good = b.dataset.good; render(); }); });
+  $("next").addEventListener("click", function () { if (canNext()) go(S.step + 1); });
+  $("back").addEventListener("click", function () { go(S.step - 1); });
+  $("pairForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    $("pairNote").textContent = "Not built yet. Pairing needs a feed service and the Dial's settings page, and neither exists yet. " +
+                                "Today a feed goes on through the recipe page and a USB cable.";
+  });
+  setInterval(drawPreview, 30000);                      // a reading ages; the preview says so when it goes stale
+  render();
+})();
+</script>
+</body>
+</html>

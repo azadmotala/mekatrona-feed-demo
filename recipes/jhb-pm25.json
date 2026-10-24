@@ -1,0 +1,1 @@
+{"schema":"mekatrona/recipe@0","source":"https://air-quality-api.open-meteo.com/v1/air-quality?latitude=-26.2&longitude=28.04&current=pm2_5","pick":{"value":"current.pm2_5","unit":"current_units.pm2_5","at":"current.time","atOffset":"utc_offset_seconds"},"dial":{"name":"Jhb PM2.5","rangeLo":0,"rangeHi":50,"setHand":15,"good":"low","zoneMode":"mark","staleAfterS":3600}}

@@ -141,6 +141,9 @@ class Recipes(unittest.TestCase):
         self.assertIsNotNone(but(dial__rangeLo=40))
         self.assertIsNotNone(but(dial__staleAfterS=0))
         self.assertIsNotNone(but(atZone="SAST"))
+        self.assertIn("one of", but(dial__good="best"))
+        self.assertIn("one of", but(dial__zoneMode="band"))
+        self.assertIn("per cent", but(dial__zoneLow=120))
 
 
 class Feeds(unittest.TestCase):
@@ -150,6 +153,15 @@ class Feeds(unittest.TestCase):
             "name": "Johannesburg", "unit": "\u00b0C", "rangeLo": 0, "rangeHi": 40,
             "value": "26.0", "at": "2026-10-24T09:45:00Z", "staleAfterS": 3600}})
         self.assertTrue(dial_accepts(feed))
+
+    def test_a_target_and_its_colours_are_copied_in_the_dial_s_order(self):
+        r = json.loads(json.dumps(RECIPE))
+        r["dial"].update(setHand=22, good="mid", zoneMode="mark")
+        C.check_recipe(r)
+        dial = C.feed_from(r, OPEN_METEO)["dial"]
+        self.assertEqual(list(dial), ["name", "unit", "rangeLo", "rangeHi", "setHand", "good", "zoneMode",
+                                      "value", "at", "staleAfterS"])
+        self.assertEqual((dial["setHand"], dial["good"], dial["zoneMode"]), (22, "mid", "mark"))
 
     def test_the_file_is_small_and_utf8(self):
         body = C.dump(C.feed_from(RECIPE, OPEN_METEO))

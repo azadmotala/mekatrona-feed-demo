@@ -37,6 +37,7 @@ button, .button { display: inline-block; background: var(--text); color: var(--b
 button.quiet { background: transparent; color: var(--text); border: 1px solid var(--line); }
 .row { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; }
 .row > div { flex: 1 1 160px; min-width: 0; }
+select { width: 100%; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; }
 .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-bottom: 12px; }
 .roles { display: flex; gap: 6px; flex-wrap: wrap; margin: 12px 0 8px; }
 .roles button { background: transparent; color: var(--text); border: 1px solid var(--line); font-weight: 500; padding: 5px 10px; }
@@ -119,9 +120,13 @@ footer { color: var(--dim); font-size: 13px; }
       <div><label for="d-unit">Unit (if you didn't pick one)</label><input id="d-unit" placeholder="C"></div>
       <div><label for="d-lo">Scale from</label><input id="d-lo" class="mono" inputmode="decimal" value="0"></div>
       <div><label for="d-hi">Scale to</label><input id="d-hi" class="mono" inputmode="decimal" value="40"></div>
-      <div><label for="d-mark">Target (optional)</label><input id="d-mark" class="mono" inputmode="decimal"></div>
+      <div><label for="d-mark">Target (optional)</label><input id="d-mark" class="mono" inputmode="decimal" value="22"></div>
+      <div><label for="d-good">Good when</label><select id="d-good"><option value="high">Higher</option>
+        <option value="low">Lower</option><option value="mid" selected>Near the target</option></select></div>
       <div><label for="d-stale">Stale after (minutes)</label><input id="d-stale" class="mono" inputmode="numeric" value="60"></div>
     </div>
+    <p class="note">With a target, the Dial's ring lights round it: green on the good side, then amber, then red, and out to
+      the needle in the colour of where the reading sits. With no target the ring stays dark.</p>
     <p class="note">Once a reading is older than this, the dial shows STALE and how old it is. That needs a reading time, picked above.</p>
   </section>
 
@@ -145,7 +150,8 @@ footer { color: var(--dim); font-size: 13px; }
 
   <footer>
     <p>The file follows the dial's format, <code>analog-dial/feed@0</code>: <code>value</code> as text, <code>at</code> in UTC,
-      and optionally <code>name</code>, <code>unit</code>, <code>rangeLo</code>, <code>rangeHi</code>, <code>setHand</code> and <code>staleAfterS</code>.</p>
+      and optionally <code>name</code>, <code>unit</code>, <code>rangeLo</code>, <code>rangeHi</code>, <code>setHand</code>,
+      <code>good</code>, <code>zoneMode</code>, <code>zoneLow</code>, <code>zoneHigh</code> and <code>staleAfterS</code>.</p>
     <p>Weather data by <a href="https://open-meteo.com/">Open-Meteo.com</a>, under CC BY 4.0. Their free API is for non-commercial use.</p>
   </footer>
 </main>
@@ -347,7 +353,11 @@ function buildRecipe() {
   for (const [n, v] of [["Scale from", lo], ["Scale to", hi], ["Target", mark]]) if (Number.isNaN(v)) problems.push(n + " has to be a number.");
   if (lo !== null && !Number.isNaN(lo)) dial.rangeLo = lo;
   if (hi !== null && !Number.isNaN(hi)) dial.rangeHi = hi;
-  if (mark !== null && !Number.isNaN(mark)) dial.setHand = mark;
+  if (mark !== null && !Number.isNaN(mark)) {
+    dial.setHand = mark;
+    dial.good = $("d-good").value;
+    dial.zoneMode = "mark";
+  }
   if (dial.rangeLo !== undefined && dial.rangeHi !== undefined && !(dial.rangeLo < dial.rangeHi)) problems.push("Scale from has to be below Scale to.");
   const stale = $("d-stale").value.trim();
   if (stale !== "") {
@@ -425,7 +435,7 @@ document.querySelectorAll("#roles button").forEach((b) => b.addEventListener("cl
   role = b.dataset.role;
   document.querySelectorAll("#roles button").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
 }));
-for (const id of ["src", "p-value", "p-unit", "p-at", "p-atOffset", "utc", "d-name", "d-unit", "d-lo", "d-hi", "d-mark", "d-stale", "r-name"])
+for (const id of ["src", "p-value", "p-unit", "p-at", "p-atOffset", "utc", "d-name", "d-unit", "d-lo", "d-hi", "d-mark", "d-good", "d-stale", "r-name"])
   $(id).addEventListener("input", update);
 $("read").addEventListener("click", readSource);
 $("copy").addEventListener("click", async () => {

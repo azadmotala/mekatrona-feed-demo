@@ -16,6 +16,7 @@ and Pages can take up to 10 minutes to serve a new file. Everything in here is p
 ```json
 {"schema": "analog-dial/feed@0",
  "dial": {"name": "Johannesburg", "unit": "°C", "rangeLo": 0, "rangeHi": 40,
+          "setHand": 22, "good": "mid", "zoneMode": "mark",
           "value": "26.0", "at": "2026-10-24T09:45:00Z", "staleAfterS": 3600}}
 ```
 
@@ -28,7 +29,10 @@ reading. It can be up to 12 characters: extra decimal places get rounded off, an
 republished.
 
 The rest is optional: `name`, `unit`, `rangeLo` and `rangeHi` (0 and 100 if you leave them out),
-and `setHand` for a target.
+and `setHand` for a target. With a target, the Dial's ring lights round it as the web dial's does:
+`good` says which way is good (`high`, `low`, or `mid` for near the target), and `zoneMode`
+(`fixed` or `mark`), `zoneLow` and `zoneHigh` (per cent of the scale, 33 and 66 if left out) say
+where the colours change. With no target the ring stays dark.
 
 ## Recipes
 
@@ -37,7 +41,8 @@ and `setHand` for a target.
  "source": "https://api.open-meteo.com/v1/forecast?latitude=-26.2&longitude=28.04&current=temperature_2m",
  "pick": {"value": "current.temperature_2m", "unit": "current_units.temperature_2m",
           "at": "current.time", "atOffset": "utc_offset_seconds"},
- "dial": {"name": "Johannesburg", "rangeLo": 0, "rangeHi": 40, "staleAfterS": 3600}}
+ "dial": {"name": "Johannesburg", "rangeLo": 0, "rangeHi": 40, "setHand": 22, "good": "mid",
+          "zoneMode": "mark", "staleAfterS": 3600}}
 ```
 
 `pick` points at fields in the source's JSON, and `data[0].price` and `data.0.price` both work.

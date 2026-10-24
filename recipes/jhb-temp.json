@@ -11,6 +11,9 @@
     "name": "Johannesburg",
     "rangeLo": 0,
     "rangeHi": 40,
+    "setHand": 22,
+    "good": "mid",
+    "zoneMode": "mark",
     "staleAfterS": 3600
   }
 }

@@ -43,6 +43,9 @@ NAME_RE = re.compile(r"^[a-z0-9][a-z0-9-]{0,39}$")
 DECIMAL_RE = re.compile(r"^[+-]?[0-9]+(\.[0-9]+)?$")
 DIAL_TEXT = ("name", "unit")
 DIAL_NUMBERS = ("rangeLo", "rangeHi", "setHand")
+DIAL_CHOICES = {"good": ("high", "low", "mid"), "zoneMode": ("fixed", "mark")}
+DIAL_PERCENT = ("zoneLow", "zoneHigh")
+DIAL_ORDER = ("name", "unit", "rangeLo", "rangeHi", "setHand", "good", "zoneMode", "zoneLow", "zoneHigh")
 
 
 class Refused(Exception):
@@ -198,6 +201,12 @@ def check_recipe(recipe):
         elif key in DIAL_NUMBERS:
             if isinstance(v, bool) or not isinstance(v, (int, float)):
                 raise Refused("dial.%s must be a number" % key)
+        elif key in DIAL_CHOICES:
+            if v not in DIAL_CHOICES[key]:
+                raise Refused("dial.%s must be one of %s" % (key, ", ".join(DIAL_CHOICES[key])))
+        elif key in DIAL_PERCENT:
+            if isinstance(v, bool) or not isinstance(v, (int, float)) or not 0 <= v <= 100:
+                raise Refused("dial.%s must be a per cent of the scale, 0 to 100" % key)
         elif key == "staleAfterS":
             if isinstance(v, bool) or not isinstance(v, (int, float)) or v <= 0:
                 raise Refused("dial.staleAfterS must be a number of seconds above 0")
@@ -219,7 +228,7 @@ def feed_from(recipe, answer):
         raise Refused("the source did not answer with JSON")
     picks, given = recipe["pick"], recipe.get("dial", {})
     dial = {}
-    for key in ("name", "unit", "rangeLo", "rangeHi", "setHand"):
+    for key in DIAL_ORDER:
         if key in given:
             dial[key] = given[key]
         elif key == "unit" and "unit" in picks:

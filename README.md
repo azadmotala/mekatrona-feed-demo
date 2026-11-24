@@ -16,12 +16,13 @@ https://azadmotala.github.io/mekatrona-feed-demo/wizard.html. You pick what the 
 choose a city or a coin, and set up the dial with a live preview of how it will look. It doesn't
 save anything, and its last step, pairing with a Dial, isn't built yet.
 
-It's a test. The Action runs whenever something is pushed to main, and it's set to run every 10
-minutes as well, but GitHub runs that schedule far less often. On 24 October 2026, the repo's first
-day, it had run twice by 17:30 UTC: at 13:45 and 17:00. So between pushes a feed can go hours
-without a new reading. A feed with `staleAfterS` shows STALE on the Dial once its reading is older
-than that. GitHub also stops scheduled runs after 60 days without a commit, and Pages can take up
-to 10 minutes to serve a new file. Everything in here is public.
+It's a test. The Action runs whenever something is pushed to main, and once a day at 07:17 UTC
+(09:17 in Johannesburg), which GitHub can start late. It used to be set to every 10 minutes, but
+GitHub ran that about four times a day: 130 runs from 24 October to 24 November 2026. So between
+pushes a reading can be a day old, or more. A feed with `staleAfterS` shows STALE on the Dial once
+its reading is older than that, and the demo feeds' limits are 30 and 60 minutes, so expect STALE
+for most of the day. GitHub also stops scheduled runs after 60 days without a commit, and Pages can
+take up to 10 minutes to serve a new file. Everything in here is public.
 
 ## What the Dial reads
 

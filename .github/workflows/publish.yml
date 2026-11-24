@@ -1,11 +1,13 @@
-# Every 10 minutes (GitHub may start a scheduled run late), on demand, and whenever main changes:
-# test the converter, turn every recipe into the dial's file, and publish the files and the recipe
-# page, with the setup mock beside it, to GitHub Pages.
+# Once a day at 07:17 UTC (GitHub may start a scheduled run late), on demand, and whenever main
+# changes: test the converter, turn every recipe into the dial's file, and publish the files and the
+# recipe page, with the setup mock beside it, to GitHub Pages. 07 UTC because no scheduled run that
+# started then failed (8 of the 130 from 2026-10-24 to 11-24), and :17 to stay off the hour, when
+# GitHub's queue is busiest.
 name: Publish feeds
 
 on:
   schedule:
-    - cron: "*/10 * * * *"
+    - cron: "17 7 * * *"
   workflow_dispatch:
   push:
     branches: [main]
@@ -24,7 +26,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: github-pages
-      url: ${{ steps.deploy.outputs.page_url }}
+      url: ${{ steps.deploy.outputs.page_url || steps.deploy_again.outputs.page_url }}
     steps:
       - uses: actions/checkout@v7
       - id: pages
@@ -39,4 +41,12 @@ jobs:
         with:
           path: _site
       - id: deploy
+        uses: actions/deploy-pages@v5
+        continue-on-error: true
+      # GitHub sometimes lists no artifact for a moment after it is finalized (3 of 15 runs,
+      # 2026-11-20 to 23, all within 0.8 s of the upload): wait, then deploy once more.
+      - if: steps.deploy.outcome == 'failure'
+        run: sleep 20
+      - id: deploy_again
+        if: steps.deploy.outcome == 'failure'
         uses: actions/deploy-pages@v5
